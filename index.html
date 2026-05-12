@@ -386,23 +386,18 @@ input,select,textarea{font-size:16px!important}
 
 <div id="toast-container"></div>
 
-<!-- Firebase SDK (compat) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- Supabase SDK (no credit card required — free plan) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* ── FIREBASE CONFIG — paste your config here after creating the project ── */
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyPLACEHOLDER",
-  authDomain:        "PLACEHOLDER.firebaseapp.com",
-  projectId:         "PLACEHOLDER",
-  storageBucket:     "PLACEHOLDER.appspot.com",
-  messagingSenderId: "000000000000",
-  appId:             "1:000000000000:web:PLACEHOLDER"
+/* ── SUPABASE CONFIG — paste your project URL and anon key here ── */
+const SUPABASE_CONFIG = {
+  url:     'PLACEHOLDER',
+  anonKey: 'PLACEHOLDER'
 };
 
 const PageControllers = {};
 
-/* ── STORE (Firestore + localStorage cache) ── */
+/* ── STORE (Supabase + localStorage cache) ── */
 const Store = {
   _ACTIVE_KEY: 'collage-marks-active-user',
   _username: null,
@@ -418,17 +413,14 @@ const Store = {
     return s;
   },
 
-  _initFirebase() {
+  _initSupabase() {
     if (this._db) return true;
-    if (FIREBASE_CONFIG.projectId === 'PLACEHOLDER') return false;
+    if (SUPABASE_CONFIG.url === 'PLACEHOLDER') return false;
     try {
-      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-      this._db = firebase.firestore();
+      this._db = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
       return true;
     } catch(e) { return false; }
   },
-
-  _usersDoc(key) { return this._db.collection('users').doc(key || this._username); },
 
   /* ── localStorage cache helpers ── */
   _writeCache() {
@@ -451,22 +443,18 @@ const Store = {
     const saved = localStorage.getItem(this._ACTIVE_KEY);
     if (saved) {
       this._username = saved;
-      const fsOK = this._initFirebase();
-      if (fsOK) {
+      this._readCache(); // fast startup from cache
+      const sbOK = this._initSupabase();
+      if (sbOK) {
         try {
-          const doc = await this._usersDoc().get();
-          if (doc.exists) {
-            const d = doc.data();
-            this._user      = d.profile || { name: saved };
-            this._settings  = this._patchSettings(d.settings || this._defaultSettings());
-            this._academics = d.academics || { years: [] };
+          const { data } = await this._db.from('users').select('*').eq('username', saved).single();
+          if (data) {
+            this._user      = { name: data.display_name };
+            this._settings  = this._patchSettings(data.settings || this._defaultSettings());
+            this._academics = data.academics || { years: [] };
             this._writeCache();
-          } else {
-            this._readCache();
           }
-        } catch(e) { this._readCache(); }
-      } else {
-        this._readCache();
+        } catch(e) { /* use cache */ }
       }
     } else {
       this._user      = { name: null };
@@ -511,25 +499,24 @@ const Store = {
     this._username = key;
     localStorage.setItem(this._ACTIVE_KEY, key);
     this._registerUser(key);
-    const fsOK = this._initFirebase();
+    const sbOK = this._initSupabase();
 
-    if (fsOK) {
+    if (sbOK) {
       try {
-        const doc = await this._usersDoc().get();
-        if (doc.exists) {
-          const d = doc.data();
-          this._user      = d.profile || { name: name.trim() };
-          this._settings  = this._patchSettings(d.settings || this._defaultSettings());
-          this._academics = d.academics || { years: [] };
+        const { data } = await this._db.from('users').select('*').eq('username', key).single();
+        if (data) {
+          this._user      = { name: data.display_name };
+          this._settings  = this._patchSettings(data.settings || this._defaultSettings());
+          this._academics = data.academics || { years: [] };
         } else {
           this._user      = { name: name.trim() };
           this._settings  = this._defaultSettings();
           this._academics = { years: [] };
-          await this._usersDoc().set({
-            profile:   this._user,
-            settings:  this._settings,
-            academics: this._academics,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          await this._db.from('users').insert({
+            username:     key,
+            display_name: name.trim(),
+            settings:     this._settings,
+            academics:    this._academics,
           });
         }
         this._writeCache();
@@ -564,7 +551,7 @@ const Store = {
     this._user.name = displayName.trim();
     this._writeCache();
     if (this._db && this._username) {
-      try { await this._usersDoc().update({ 'profile.name': displayName.trim() }); } catch(e) {}
+      try { await this._db.from('users').update({ display_name: displayName.trim() }).eq('username', this._username); } catch(e) {}
     }
     const initials = displayName.trim().slice(0,1).toUpperCase();
     const avatarEl = document.getElementById('sidebar-avatar');
@@ -577,7 +564,7 @@ const Store = {
   async saveAcademics() {
     this._writeCache();
     if (this._db && this._username) {
-      try { await this._usersDoc().update({ academics: this._academics }); } catch(e) {}
+      try { await this._db.from('users').update({ academics: this._academics }).eq('username', this._username); } catch(e) {}
     }
     this.emit('academics:changed', this._academics);
   },
@@ -585,7 +572,7 @@ const Store = {
   async saveSettings() {
     this._writeCache();
     if (this._db && this._username) {
-      try { await this._usersDoc().update({ settings: this._settings }); } catch(e) {}
+      try { await this._db.from('users').update({ settings: this._settings }).eq('username', this._username); } catch(e) {}
     }
     this.emit('settings:changed', this._settings);
   },
@@ -1103,9 +1090,10 @@ PageControllers.onboarding = {
       _checkTimer = setTimeout(async () => {
         if (Store._db) {
           try {
-            const doc = await Store._usersDoc(key).get();
-            statusEl.textContent = doc.exists ? '✓ Welcome back! Your data will be loaded.' : '✦ New account will be created.';
-            statusEl.style.color = doc.exists ? 'var(--color-success)' : 'var(--color-info)';
+            const { data } = await Store._db.from('users').select('username').eq('username', key).single();
+            const exists = !!data;
+            statusEl.textContent = exists ? '✓ Welcome back! Your data will be loaded.' : '✦ New account will be created.';
+            statusEl.style.color = exists ? 'var(--color-success)' : 'var(--color-info)';
           } catch(e) { statusEl.textContent = '✦ New account will be created.'; statusEl.style.color = 'var(--color-info)'; }
         } else {
           statusEl.textContent = '✦ New account will be created.'; statusEl.style.color = 'var(--color-info)';

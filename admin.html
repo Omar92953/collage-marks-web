@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin — Collage Marks</title>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -80,7 +79,7 @@ h1{font-size:26px;font-weight:700;margin-bottom:4px}
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text2)"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
   <h1>Admin Dashboard</h1>
 </div>
-<p class="subtitle">Private — only accessible at this URL. All users' data from Firestore.</p>
+<p class="subtitle">Private — only accessible at this URL. All users' data from Supabase.</p>
 
 <div id="config-warning"></div>
 
@@ -94,14 +93,10 @@ h1{font-size:26px;font-weight:700;margin-bottom:4px}
 
 </div>
 <script>
-/* ── PASTE YOUR FIREBASE CONFIG HERE (same as in index.html) ── */
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyPLACEHOLDER",
-  authDomain:        "PLACEHOLDER.firebaseapp.com",
-  projectId:         "PLACEHOLDER",
-  storageBucket:     "PLACEHOLDER.appspot.com",
-  messagingSenderId: "000000000000",
-  appId:             "1:000000000000:web:PLACEHOLDER"
+/* ── PASTE YOUR SUPABASE CONFIG HERE (same as in index.html) ── */
+const SUPABASE_CONFIG = {
+  url:     'PLACEHOLDER',
+  anonKey: 'PLACEHOLDER'
 };
 
 /* ─────────────────────────────────────────── */
@@ -109,12 +104,11 @@ const FIREBASE_CONFIG = {
 const BOUNDS_DEF = { A: 85, B: 75, C: 60, D: 50, F: 0 };
 let db = null;
 
-function initFirebase() {
+function initSupabase() {
   if (db) return true;
-  if (FIREBASE_CONFIG.projectId === 'PLACEHOLDER') return false;
+  if (SUPABASE_CONFIG.url === 'PLACEHOLDER') return false;
   try {
-    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.firestore();
+    db = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
     return true;
   } catch(e) { return false; }
 }
@@ -166,7 +160,7 @@ function termMarks(term) {
   return { earned, total, hasData };
 }
 
-function renderUser({ key, profile, settings, academics }) {
+function renderUser({ key, display_name, settings, academics }) {
   const bounds = (settings && settings.gradeBoundaries) || BOUNDS_DEF;
   let totalEarned = 0, totalMarks = 0, hasData = false;
 
@@ -206,7 +200,7 @@ function renderUser({ key, profile, settings, academics }) {
 
   const overallAvg   = hasData && totalMarks ? (totalEarned / totalMarks) * 100 : null;
   const overallGrade = grade(overallAvg, bounds);
-  const displayName  = (profile && profile.name) || key;
+  const displayName  = display_name || key;
 
   return `<div class="card">
     <div class="card-header">
@@ -232,33 +226,34 @@ async function loadData() {
   const gridEl    = document.getElementById('users-grid');
   const warnEl    = document.getElementById('config-warning');
 
-  const fsOK = initFirebase();
-  if (!fsOK) {
+  const sbOK = initSupabase();
+  if (!sbOK) {
     warnEl.innerHTML = `<div class="config-banner">
-      <strong>Firebase not configured yet</strong>
-      Open <code>admin.html</code> and paste your Firebase config in the <code>FIREBASE_CONFIG</code> section at the top of the &lt;script&gt; block.
+      <strong>Supabase not configured yet</strong>
+      Open <code>admin.html</code> and paste your Supabase URL and anon key in the <code>SUPABASE_CONFIG</code> section at the top of the &lt;script&gt; block.
       Showing local data only (users from this browser).
     </div>`;
     loadLocal(statsEl, gridEl, statusEl);
     return;
   }
   warnEl.innerHTML = '';
-  statusEl.textContent = 'Fetching from Firestore...';
+  statusEl.textContent = 'Fetching from Supabase...';
 
   try {
-    const snap = await db.collection('users').get();
-    if (snap.empty) {
+    const { data, error } = await db.from('users').select('*');
+    if (error) throw error;
+    if (!data || !data.length) {
       statusEl.textContent = 'No users yet.';
       statsEl.innerHTML = '';
       gridEl.innerHTML = `<div class="no-users card"><h2>No users yet</h2><p>Friends will appear here once they create an account on the main app.</p></div>`;
       return;
     }
 
-    const users = snap.docs.map(doc => ({
-      key:       doc.id,
-      profile:   doc.data().profile   || { name: doc.id },
-      settings:  doc.data().settings  || {},
-      academics: doc.data().academics || { years: [] },
+    const users = data.map(row => ({
+      key:          row.username,
+      display_name: row.display_name || row.username,
+      settings:     row.settings  || {},
+      academics:    row.academics || { years: [] },
     }));
 
     statusEl.textContent = `${users.length} user${users.length!==1?'s':''} · updated ${new Date().toLocaleTimeString()}`;
@@ -286,14 +281,15 @@ function loadLocal(statsEl, gridEl, statusEl) {
   if (!keys.length) {
     statusEl.textContent = 'No local users found.';
     statsEl.innerHTML = '';
-    gridEl.innerHTML = `<div class="no-users card"><h2>No local users</h2><p>Once Firebase is configured, all users across all devices will appear here.</p></div>`;
+    gridEl.innerHTML = `<div class="no-users card"><h2>No local users</h2><p>Once Supabase is configured, all users across all devices will appear here.</p></div>`;
     return;
   }
   const users = keys.map(key => {
     const uRaw = localStorage.getItem(`collage-marks-${key}-user`);
     const aRaw = localStorage.getItem(`collage-marks-${key}-academics`);
     const sRaw = localStorage.getItem(`collage-marks-${key}-settings`);
-    return { key, profile: uRaw ? JSON.parse(uRaw) : { name: key }, settings: sRaw ? JSON.parse(sRaw) : {}, academics: aRaw ? JSON.parse(aRaw) : { years: [] } };
+    const u = uRaw ? JSON.parse(uRaw) : null;
+    return { key, display_name: (u && u.name) || key, settings: sRaw ? JSON.parse(sRaw) : {}, academics: aRaw ? JSON.parse(aRaw) : { years: [] } };
   });
   statusEl.textContent = `${users.length} local user${users.length!==1?'s':''} (local only)`;
   renderSummary(users, statsEl);
