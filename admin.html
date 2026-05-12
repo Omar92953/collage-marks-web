@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin — Collage Marks</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -11,74 +14,125 @@
   --border: rgba(84,84,88,.35); --border-light: rgba(84,84,88,.2);
   --text: #fff; --text2: rgba(235,235,245,.6); --text3: rgba(235,235,245,.3);
   --green: #30d158; --green-bg: rgba(48,209,88,.15);
-  --orange: #ff9f0a; --orange-bg: rgba(255,159,10,.15);
+  --orange: #ff9f0a;
   --gray: #8e8e93; --gray-bg: rgba(142,142,147,.15);
   --red: #ff453a; --red-bg: rgba(255,69,58,.15);
   --d-color: #ff7b4d; --d-bg: rgba(255,123,77,.15);
-  --radius: 14px; --radius-sm: 10px; --radius-xs: 8px;
+  --blue: #64d2ff; --blue-bg: rgba(100,210,255,.12);
+  --radius: 14px; --radius-sm: 10px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px 48px;}
-h1{font-size:28px;font-weight:700;margin-bottom:4px}
-.subtitle{color:var(--text2);font-size:13px;margin-bottom:24px}
-.grid{display:grid;gap:16px;max-width:860px;margin:0 auto;}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.card-header{display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--border);}
-.avatar{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;}
-.user-name{font-weight:700;font-size:17px}
-.user-meta{font-size:12px;color:var(--text3);margin-top:2px}
-.overall{text-align:right}
-.grade-badge{display:inline-flex;align-items:center;justify-content:center;font-weight:700;border-radius:50%;width:40px;height:40px;font-size:16px;}
-.grade-badge.sm{width:28px;height:28px;font-size:12px;border-radius:50%;}
-.grade-A{background:var(--green-bg);color:var(--green)}
-.grade-B{background:rgba(255,255,255,.12);color:var(--text)}
-.grade-C{background:var(--gray-bg);color:var(--gray)}
-.grade-D{background:var(--d-bg);color:var(--d-color)}
-.grade-F{background:var(--red-bg);color:var(--red)}
-.grade---{background:var(--gray-bg);color:var(--gray)}
-.grade-none{background:var(--gray-bg);color:var(--gray)}
-.overall-pct{font-size:12px;color:var(--text3);margin-top:4px}
-.year-rows{padding:12px 20px;}
-.year-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-light);}
-.year-row:last-child{border-bottom:none}
-.year-label{font-size:13px;color:var(--text2)}
-.year-right{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600}
-.empty{padding:16px 20px;color:var(--text3);font-size:13px}
-.no-users{text-align:center;padding:64px 24px;color:var(--text3)}
-.no-users h2{color:var(--text2);margin-bottom:8px}
-.header{max-width:860px;margin:0 auto 24px}
-.refresh-btn{background:rgba(255,255,255,.1);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:var(--radius-xs);font-size:13px;cursor:pointer;margin-top:8px}
-.refresh-btn:hover{background:rgba(255,255,255,.15)}
-.stats-row{display:flex;gap:16px;max-width:860px;margin:0 auto 20px;flex-wrap:wrap}
-.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;flex:1;min-width:120px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:28px 16px 56px}
+.wrap{max-width:880px;margin:0 auto}
+h1{font-size:26px;font-weight:700;margin-bottom:4px}
+.subtitle{color:var(--text2);font-size:13px;margin-bottom:20px}
+.toolbar{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+.btn{padding:7px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.08);color:var(--text)}
+.btn:hover{background:rgba(255,255,255,.14)}
+.btn.primary{background:#fff;color:#000;border-color:#fff}
+.btn.primary:hover{background:rgba(255,255,255,.85)}
+#status-msg{font-size:12px;color:var(--text3);flex:1;min-width:0}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:20px}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px}
 .stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
 .stat-val{font-size:26px;font-weight:700}
-.term-rows{padding:4px 20px 12px;}
-.term-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;color:var(--text3)}
+.grid{display:grid;gap:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.card-header{display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border)}
+.avatar{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0;color:var(--text)}
+.user-name{font-weight:700;font-size:16px}
+.user-meta{font-size:12px;color:var(--text3);margin-top:2px}
+.overall{text-align:right}
+.overall-pct{font-size:12px;color:var(--text3);margin-top:4px}
+.grade-badge{display:inline-flex;align-items:center;justify-content:center;font-weight:700;border-radius:50%;width:40px;height:40px;font-size:15px}
+.badge-sm{width:26px;height:26px;font-size:11px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.gA{background:var(--green-bg);color:var(--green)}
+.gB{background:rgba(255,255,255,.12);color:var(--text)}
+.gC{background:var(--gray-bg);color:var(--gray)}
+.gD{background:var(--d-bg);color:var(--d-color)}
+.gF{background:var(--red-bg);color:var(--red)}
+.g-{background:var(--gray-bg);color:var(--gray)}
+.year-rows{padding:10px 18px}
+.year-row{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border-light)}
+.year-row:last-child{border-bottom:none}
+.year-label{font-size:13px;color:var(--text2);font-weight:600}
+.year-right{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.terms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;margin-top:6px}
+.term-chip{background:var(--surface2);border:1px solid var(--border-light);border-radius:8px;padding:6px 10px;font-size:11px}
+.term-chip-label{color:var(--text3);margin-bottom:2px}
+.term-chip-val{font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px}
+.empty{padding:16px 18px;color:var(--text3);font-size:13px}
+.no-users{text-align:center;padding:60px 24px;color:var(--text3)}
+.no-users h2{color:var(--text2);margin-bottom:8px;font-size:20px}
+.no-users p{font-size:13px;line-height:1.6;max-width:360px;margin:0 auto}
+.config-banner{background:rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.3);border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:20px;font-size:13px;line-height:1.6}
+.config-banner strong{color:var(--orange);display:block;margin-bottom:4px}
+.config-banner code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-size:12px}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;margin-left:6px}
+.tag-new{background:var(--blue-bg);color:var(--blue)}
+.tag-active{background:var(--green-bg);color:var(--green)}
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="header">
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text2)"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
   <h1>Admin Dashboard</h1>
-  <p class="subtitle">All user accounts on this device — only visible at this URL</p>
-  <button class="refresh-btn" onclick="render()">Refresh</button>
+</div>
+<p class="subtitle">Private — only accessible at this URL. All users' data from Firestore.</p>
+
+<div id="config-warning"></div>
+
+<div class="toolbar">
+  <button class="btn primary" onclick="loadData()">Refresh</button>
+  <span id="status-msg">Loading...</span>
 </div>
 
-<div class="stats-row" id="summary-row"></div>
-<div class="grid" id="users-grid"></div>
+<div class="stats-row" id="stats-row"></div>
+<div class="grid"    id="users-grid"></div>
 
+</div>
 <script>
-const BOUNDS_DEFAULT = { A: 85, B: 75, C: 60, D: 50, F: 0 };
+/* ── PASTE YOUR FIREBASE CONFIG HERE (same as in index.html) ── */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyPLACEHOLDER",
+  authDomain:        "PLACEHOLDER.firebaseapp.com",
+  projectId:         "PLACEHOLDER",
+  storageBucket:     "PLACEHOLDER.appspot.com",
+  messagingSenderId: "000000000000",
+  appId:             "1:000000000000:web:PLACEHOLDER"
+};
 
-function getGrade(pct, b) {
+/* ─────────────────────────────────────────── */
+
+const BOUNDS_DEF = { A: 85, B: 75, C: 60, D: 50, F: 0 };
+let db = null;
+
+function initFirebase() {
+  if (db) return true;
+  if (FIREBASE_CONFIG.projectId === 'PLACEHOLDER') return false;
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    return true;
+  } catch(e) { return false; }
+}
+
+function grade(pct, b) {
   if (pct === null || pct === undefined) return '--';
-  b = b || BOUNDS_DEFAULT;
+  b = b || BOUNDS_DEF;
   if (pct >= b.A) return 'A';
   if (pct >= b.B) return 'B';
   if (pct >= b.C) return 'C';
   if (b.D !== undefined && pct >= b.D) return 'D';
   return 'F';
+}
+
+function gradeClass(g) { return 'g' + (g === '--' ? '-' : g); }
+
+function badge(g, sm) {
+  return `<span class="${sm ? 'badge-sm' : 'grade-badge'} ${gradeClass(g)}">${g}</span>`;
 }
 
 function yearMarks(year) {
@@ -112,105 +166,141 @@ function termMarks(term) {
   return { earned, total, hasData };
 }
 
-function gradeBadge(grade, size) {
-  const cls = grade === '--' ? 'grade-none' : `grade-${grade}`;
-  return `<span class="grade-badge ${size === 'sm' ? 'sm' : ''} ${cls}">${grade}</span>`;
+function renderUser({ key, profile, settings, academics }) {
+  const bounds = (settings && settings.gradeBoundaries) || BOUNDS_DEF;
+  let totalEarned = 0, totalMarks = 0, hasData = false;
+
+  const yearRowsHTML = (academics.years || []).map(year => {
+    const ym  = yearMarks(year);
+    totalEarned += ym.earned; totalMarks += ym.total; if (ym.hasData) hasData = true;
+    const avg = ym.hasData && ym.total ? (ym.earned / ym.total) * 100 : null;
+    const g   = grade(avg, bounds);
+
+    const termChips = (year.terms || []).map(term => {
+      const tm   = termMarks(term);
+      const tavg = tm.hasData && tm.total ? (tm.earned / tm.total) * 100 : null;
+      const tg   = grade(tavg, bounds);
+      const units = [...(term.modules||[]),...(term.subjects||[])].length;
+      return `<div class="term-chip">
+        <div class="term-chip-label">${term.label} &nbsp;·&nbsp; ${units} unit${units!==1?'s':''}</div>
+        <div class="term-chip-val">
+          ${tavg !== null ? `${tm.earned}/${tm.total} (${tavg.toFixed(1)}%)` : '<span style="color:var(--text3)">no data</span>'}
+          ${badge(tg, true)}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="year-row">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="year-label">${year.label}</span>
+          <div class="year-right">
+            ${avg !== null ? `${ym.earned}/${ym.total} (${avg.toFixed(1)}%)` : '<span style="color:var(--text3)">no data</span>'}
+            ${badge(g, true)}
+          </div>
+        </div>
+        ${termChips ? `<div class="terms-grid">${termChips}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const overallAvg   = hasData && totalMarks ? (totalEarned / totalMarks) * 100 : null;
+  const overallGrade = grade(overallAvg, bounds);
+  const displayName  = (profile && profile.name) || key;
+
+  return `<div class="card">
+    <div class="card-header">
+      <div class="avatar">${displayName.slice(0,1).toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div class="user-name">${displayName}</div>
+        <div class="user-meta">@${key} &nbsp;·&nbsp; ${(academics.years||[]).length} year${(academics.years||[]).length!==1?'s':''}</div>
+      </div>
+      <div class="overall">
+        ${badge(overallGrade)}
+        ${overallAvg !== null ? `<div class="overall-pct">${overallAvg.toFixed(1)}%</div>` : ''}
+      </div>
+    </div>
+    ${yearRowsHTML
+      ? `<div class="year-rows">${yearRowsHTML}</div>`
+      : `<div class="empty">No academic years added yet.</div>`}
+  </div>`;
 }
 
-function render() {
-  const listRaw = localStorage.getItem('collage-marks-users');
-  const keys = listRaw ? JSON.parse(listRaw) : [];
-
-  const summaryEl = document.getElementById('summary-row');
+async function loadData() {
+  const statusEl  = document.getElementById('status-msg');
+  const statsEl   = document.getElementById('stats-row');
   const gridEl    = document.getElementById('users-grid');
+  const warnEl    = document.getElementById('config-warning');
 
-  if (!keys.length) {
-    summaryEl.innerHTML = '';
-    gridEl.innerHTML = `<div class="no-users card"><h2>No users yet</h2><p>Friends will appear here once they create an account on the main app.</p></div>`;
+  const fsOK = initFirebase();
+  if (!fsOK) {
+    warnEl.innerHTML = `<div class="config-banner">
+      <strong>Firebase not configured yet</strong>
+      Open <code>admin.html</code> and paste your Firebase config in the <code>FIREBASE_CONFIG</code> section at the top of the &lt;script&gt; block.
+      Showing local data only (users from this browser).
+    </div>`;
+    loadLocal(statsEl, gridEl, statusEl);
     return;
   }
+  warnEl.innerHTML = '';
+  statusEl.textContent = 'Fetching from Firestore...';
 
+  try {
+    const snap = await db.collection('users').get();
+    if (snap.empty) {
+      statusEl.textContent = 'No users yet.';
+      statsEl.innerHTML = '';
+      gridEl.innerHTML = `<div class="no-users card"><h2>No users yet</h2><p>Friends will appear here once they create an account on the main app.</p></div>`;
+      return;
+    }
+
+    const users = snap.docs.map(doc => ({
+      key:       doc.id,
+      profile:   doc.data().profile   || { name: doc.id },
+      settings:  doc.data().settings  || {},
+      academics: doc.data().academics || { years: [] },
+    }));
+
+    statusEl.textContent = `${users.length} user${users.length!==1?'s':''} · updated ${new Date().toLocaleTimeString()}`;
+    renderSummary(users, statsEl);
+    gridEl.innerHTML = users.map(u => renderUser(u)).join('');
+  } catch(e) {
+    statusEl.textContent = `Error: ${e.message}`;
+    loadLocal(statsEl, gridEl, statusEl);
+  }
+}
+
+function renderSummary(users, statsEl) {
+  const withData = users.filter(u => (u.academics.years||[]).some(y => yearMarks(y).hasData)).length;
+  const totalYears = users.reduce((s,u) => s + (u.academics.years||[]).length, 0);
+  statsEl.innerHTML = `
+    <div class="stat-box"><div class="stat-label">Total Users</div><div class="stat-val">${users.length}</div></div>
+    <div class="stat-box"><div class="stat-label">With Data</div><div class="stat-val">${withData}</div></div>
+    <div class="stat-box"><div class="stat-label">Total Years</div><div class="stat-val">${totalYears}</div></div>
+  `;
+}
+
+function loadLocal(statsEl, gridEl, statusEl) {
+  const raw  = localStorage.getItem('collage-marks-users');
+  const keys = raw ? JSON.parse(raw) : [];
+  if (!keys.length) {
+    statusEl.textContent = 'No local users found.';
+    statsEl.innerHTML = '';
+    gridEl.innerHTML = `<div class="no-users card"><h2>No local users</h2><p>Once Firebase is configured, all users across all devices will appear here.</p></div>`;
+    return;
+  }
   const users = keys.map(key => {
     const uRaw = localStorage.getItem(`collage-marks-${key}-user`);
     const aRaw = localStorage.getItem(`collage-marks-${key}-academics`);
     const sRaw = localStorage.getItem(`collage-marks-${key}-settings`);
-    return {
-      key,
-      user:     uRaw ? JSON.parse(uRaw) : { name: key },
-      acad:     aRaw ? JSON.parse(aRaw) : { years: [] },
-      settings: sRaw ? JSON.parse(sRaw) : {},
-    };
+    return { key, profile: uRaw ? JSON.parse(uRaw) : { name: key }, settings: sRaw ? JSON.parse(sRaw) : {}, academics: aRaw ? JSON.parse(aRaw) : { years: [] } };
   });
-
-  // Summary stats
-  const totalUsers = users.length;
-  const usersWithData = users.filter(u => (u.acad.years || []).some(y => yearMarks(y).hasData)).length;
-  summaryEl.innerHTML = `
-    <div class="stat-box"><div class="stat-label">Total Users</div><div class="stat-val">${totalUsers}</div></div>
-    <div class="stat-box"><div class="stat-label">With Data</div><div class="stat-val">${usersWithData}</div></div>
-    <div class="stat-box"><div class="stat-label">Total Years</div><div class="stat-val">${users.reduce((s,u)=>s+(u.acad.years||[]).length,0)}</div></div>
-  `;
-
-  gridEl.innerHTML = users.map(({ key, user, acad, settings }) => {
-    const bounds = settings.gradeBoundaries || BOUNDS_DEFAULT;
-    let totalEarned = 0, totalMarks = 0, hasData = false;
-
-    const yearRowsHTML = (acad.years || []).map(year => {
-      const ym = yearMarks(year);
-      totalEarned += ym.earned; totalMarks += ym.total; if (ym.hasData) hasData = true;
-      const avg   = ym.hasData && ym.total ? (ym.earned / ym.total) * 100 : null;
-      const grade = getGrade(avg, bounds);
-
-      // Term breakdown
-      const termHTML = (year.terms || []).map(term => {
-        const tm = termMarks(term);
-        const tavg = tm.hasData && tm.total ? (tm.earned / tm.total) * 100 : null;
-        const tgrade = getGrade(tavg, bounds);
-        const units = [...(term.modules||[]),...(term.subjects||[])].length;
-        return `<div class="term-row">
-          <span>${term.label} &nbsp;·&nbsp; ${units} unit${units!==1?'s':''}</span>
-          <span style="display:flex;align-items:center;gap:8px;">
-            ${tavg !== null ? `${tm.earned}/${tm.total} (${tavg.toFixed(1)}%)` : 'no data'}
-            ${gradeBadge(tgrade, 'sm')}
-          </span>
-        </div>`;
-      }).join('');
-
-      return `<div class="year-row">
-        <span class="year-label">${year.label}</span>
-        <div class="year-right">
-          ${avg !== null
-            ? `<span>${ym.earned} / ${ym.total} &nbsp;·&nbsp; ${avg.toFixed(1)}%</span>`
-            : `<span style="color:var(--text3)">No data</span>`}
-          ${gradeBadge(grade, 'sm')}
-        </div>
-      </div>
-      ${termHTML ? `<div class="term-rows">${termHTML}</div>` : ''}`;
-    }).join('');
-
-    const overallAvg   = hasData && totalMarks ? (totalEarned / totalMarks) * 100 : null;
-    const overallGrade = getGrade(overallAvg, bounds);
-
-    return `<div class="card">
-      <div class="card-header">
-        <div class="avatar">${(user.name || key).slice(0,1).toUpperCase()}</div>
-        <div style="flex:1">
-          <div class="user-name">${user.name || key}</div>
-          <div class="user-meta">@${key} &nbsp;·&nbsp; ${(acad.years||[]).length} year${(acad.years||[]).length!==1?'s':''}</div>
-        </div>
-        <div class="overall">
-          ${gradeBadge(overallGrade)}
-          ${overallAvg !== null ? `<div class="overall-pct">${overallAvg.toFixed(1)}%</div>` : ''}
-        </div>
-      </div>
-      ${yearRowsHTML
-        ? `<div class="year-rows">${yearRowsHTML}</div>`
-        : `<div class="empty">No academic years added yet.</div>`}
-    </div>`;
-  }).join('');
+  statusEl.textContent = `${users.length} local user${users.length!==1?'s':''} (local only)`;
+  renderSummary(users, statsEl);
+  gridEl.innerHTML = users.map(u => renderUser(u)).join('');
 }
 
-render();
+loadData();
 </script>
 </body>
 </html>

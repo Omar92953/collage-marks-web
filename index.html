@@ -386,57 +386,110 @@ input,select,textarea{font-size:16px!important}
 
 <div id="toast-container"></div>
 
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
+/* ── FIREBASE CONFIG — paste your config here after creating the project ── */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyPLACEHOLDER",
+  authDomain:        "PLACEHOLDER.firebaseapp.com",
+  projectId:         "PLACEHOLDER",
+  storageBucket:     "PLACEHOLDER.appspot.com",
+  messagingSenderId: "000000000000",
+  appId:             "1:000000000000:web:PLACEHOLDER"
+};
+
 const PageControllers = {};
 
-/* ── STORE (multi-user localStorage) ── */
+/* ── STORE (Firestore + localStorage cache) ── */
 const Store = {
-  _ACTIVE_KEY:  'collage-marks-active-user',
+  _ACTIVE_KEY: 'collage-marks-active-user',
   _username: null,
   _academics: null, _user: null, _settings: null, _listeners: {},
+  _db: null,
 
   _lsKey(suffix) { return `collage-marks-${this._username}-${suffix}`; },
   _defaultSettings() {
     return { theme: 'dark', gradeBoundaries: { A: 85, B: 75, C: 60, D: 50, F: 0 }, customQuotes: [] };
   },
-
-  async init() {
-    const saved = localStorage.getItem(this._ACTIVE_KEY);
-    if (saved) {
-      this._username = saved;
-      this._loadUserData();
-    } else {
-      this._user     = { name: null };
-      this._settings = this._defaultSettings();
-      this._academics = { years: [] };
-    }
+  _patchSettings(s) {
+    if (s && s.gradeBoundaries && s.gradeBoundaries.D === undefined) s.gradeBoundaries.D = 50;
+    return s;
   },
 
-  _loadUserData() {
+  _initFirebase() {
+    if (this._db) return true;
+    if (FIREBASE_CONFIG.projectId === 'PLACEHOLDER') return false;
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      this._db = firebase.firestore();
+      return true;
+    } catch(e) { return false; }
+  },
+
+  _usersDoc(key) { return this._db.collection('users').doc(key || this._username); },
+
+  /* ── localStorage cache helpers ── */
+  _writeCache() {
+    if (!this._username) return;
+    localStorage.setItem(this._lsKey('user'),      JSON.stringify(this._user));
+    localStorage.setItem(this._lsKey('settings'),  JSON.stringify(this._settings));
+    localStorage.setItem(this._lsKey('academics'), JSON.stringify(this._academics));
+  },
+  _readCache() {
     const u = localStorage.getItem(this._lsKey('user'));
     const s = localStorage.getItem(this._lsKey('settings'));
     const a = localStorage.getItem(this._lsKey('academics'));
     this._user      = u ? JSON.parse(u) : { name: this._username };
-    this._settings  = s ? JSON.parse(s) : this._defaultSettings();
-    if (this._settings.gradeBoundaries && this._settings.gradeBoundaries.D === undefined)
-      this._settings.gradeBoundaries.D = 50;
+    this._settings  = this._patchSettings(s ? JSON.parse(s) : this._defaultSettings());
     this._academics = a ? JSON.parse(a) : { years: [] };
   },
+
+  /* ── init ── */
+  async init() {
+    const saved = localStorage.getItem(this._ACTIVE_KEY);
+    if (saved) {
+      this._username = saved;
+      const fsOK = this._initFirebase();
+      if (fsOK) {
+        try {
+          const doc = await this._usersDoc().get();
+          if (doc.exists) {
+            const d = doc.data();
+            this._user      = d.profile || { name: saved };
+            this._settings  = this._patchSettings(d.settings || this._defaultSettings());
+            this._academics = d.academics || { years: [] };
+            this._writeCache();
+          } else {
+            this._readCache();
+          }
+        } catch(e) { this._readCache(); }
+      } else {
+        this._readCache();
+      }
+    } else {
+      this._user      = { name: null };
+      this._settings  = this._defaultSettings();
+      this._academics = { years: [] };
+    }
+  },
+
   getUser()      { return this._user; },
   getSettings()  { return this._settings; },
   getAcademics() { return this._academics; },
   getYear(id)    { return this._academics.years.find(y => y.id === id) || null; },
   getTerm(yearId, termId) {
-    const year = this.getYear(yearId);
-    return year ? (year.terms.find(t => t.id === termId) || null) : null;
+    const y = this.getYear(yearId);
+    return y ? (y.terms.find(t => t.id === termId) || null) : null;
   },
   getModule(yearId, termId, id) {
-    const term = this.getTerm(yearId, termId);
-    return term ? (term.modules.find(m => m.id === id) || null) : null;
+    const t = this.getTerm(yearId, termId);
+    return t ? (t.modules.find(m => m.id === id) || null) : null;
   },
   getSubject(yearId, termId, id) {
-    const term = this.getTerm(yearId, termId);
-    return term ? (term.subjects.find(s => s.id === id) || null) : null;
+    const t = this.getTerm(yearId, termId);
+    return t ? (t.subjects.find(s => s.id === id) || null) : null;
   },
   getUnit(yearId, termId, type, id) {
     return type === 'module' ? this.getModule(yearId, termId, id) : this.getSubject(yearId, termId, id);
@@ -448,36 +501,71 @@ const Store = {
   getAllUpcomingExams() { return Countdown.getAllExams(this._academics); },
 
   _registerUser(key) {
-    const listRaw = localStorage.getItem('collage-marks-users');
-    const list = listRaw ? JSON.parse(listRaw) : [];
+    const raw  = localStorage.getItem('collage-marks-users');
+    const list = raw ? JSON.parse(raw) : [];
     if (!list.includes(key)) { list.push(key); localStorage.setItem('collage-marks-users', JSON.stringify(list)); }
   },
+
   async setUserName(name) {
     const key = name.trim().toLowerCase().replace(/\s+/g, '_');
     this._username = key;
     localStorage.setItem(this._ACTIVE_KEY, key);
     this._registerUser(key);
-    const existing = localStorage.getItem(this._lsKey('user'));
-    if (existing) {
-      this._loadUserData();
+    const fsOK = this._initFirebase();
+
+    if (fsOK) {
+      try {
+        const doc = await this._usersDoc().get();
+        if (doc.exists) {
+          const d = doc.data();
+          this._user      = d.profile || { name: name.trim() };
+          this._settings  = this._patchSettings(d.settings || this._defaultSettings());
+          this._academics = d.academics || { years: [] };
+        } else {
+          this._user      = { name: name.trim() };
+          this._settings  = this._defaultSettings();
+          this._academics = { years: [] };
+          await this._usersDoc().set({
+            profile:   this._user,
+            settings:  this._settings,
+            academics: this._academics,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+        this._writeCache();
+      } catch(e) {
+        const cached = localStorage.getItem(this._lsKey('user'));
+        if (cached) { this._readCache(); } else {
+          this._user      = { name: name.trim() };
+          this._settings  = this._defaultSettings();
+          this._academics = { years: [] };
+          this._writeCache();
+        }
+      }
     } else {
-      this._user     = { name: name.trim() };
-      this._settings = this._defaultSettings();
-      this._academics = { years: [] };
-      localStorage.setItem(this._lsKey('user'),      JSON.stringify(this._user));
-      localStorage.setItem(this._lsKey('settings'),  JSON.stringify(this._settings));
-      localStorage.setItem(this._lsKey('academics'), JSON.stringify(this._academics));
+      const cached = localStorage.getItem(this._lsKey('user'));
+      if (cached) { this._readCache(); } else {
+        this._user      = { name: name.trim() };
+        this._settings  = this._defaultSettings();
+        this._academics = { years: [] };
+        this._writeCache();
+      }
     }
-    const initials = (this._user.name || name).trim().slice(0, 1).toUpperCase();
+
+    const initials = (this._user.name || name).trim().slice(0,1).toUpperCase();
     const avatarEl = document.getElementById('sidebar-avatar');
     const nameEl   = document.getElementById('sidebar-user-name');
     if (avatarEl) avatarEl.textContent = initials;
     if (nameEl)   nameEl.textContent   = (this._user.name || name).trim();
     this.emit('user:changed', this._user);
   },
+
   async saveDisplayName(displayName) {
     this._user.name = displayName.trim();
-    if (this._username) localStorage.setItem(this._lsKey('user'), JSON.stringify(this._user));
+    this._writeCache();
+    if (this._db && this._username) {
+      try { await this._usersDoc().update({ 'profile.name': displayName.trim() }); } catch(e) {}
+    }
     const initials = displayName.trim().slice(0,1).toUpperCase();
     const avatarEl = document.getElementById('sidebar-avatar');
     const nameEl   = document.getElementById('sidebar-user-name');
@@ -485,14 +573,23 @@ const Store = {
     if (nameEl)   nameEl.textContent   = displayName.trim();
     this.emit('user:changed', this._user);
   },
+
   async saveAcademics() {
-    if (this._username) localStorage.setItem(this._lsKey('academics'), JSON.stringify(this._academics));
+    this._writeCache();
+    if (this._db && this._username) {
+      try { await this._usersDoc().update({ academics: this._academics }); } catch(e) {}
+    }
     this.emit('academics:changed', this._academics);
   },
+
   async saveSettings() {
-    if (this._username) localStorage.setItem(this._lsKey('settings'), JSON.stringify(this._settings));
+    this._writeCache();
+    if (this._db && this._username) {
+      try { await this._usersDoc().update({ settings: this._settings }); } catch(e) {}
+    }
     this.emit('settings:changed', this._settings);
   },
+
   logout() {
     localStorage.removeItem(this._ACTIVE_KEY);
     this._username  = null;
@@ -991,13 +1088,29 @@ PageControllers.onboarding = {
     const submit  = document.getElementById('onboarding-submit');
     const statusEl = document.getElementById('onboarding-status');
     if (!submit) return;
+    let _checkTimer = null;
     const checkUser = () => {
       const raw = (input ? input.value : '').trim();
-      if (!raw || !statusEl) return;
+      if (!raw || !statusEl) { if (statusEl) statusEl.textContent = ''; return; }
       const key = raw.toLowerCase().replace(/\s+/g, '_');
-      const exists = !!localStorage.getItem(`collage-marks-${key}-user`);
-      statusEl.textContent = exists ? '✓ Welcome back! Your data will be loaded.' : '✦ New account will be created.';
-      statusEl.style.color = exists ? 'var(--color-success)' : 'var(--color-info)';
+      const localExists = !!localStorage.getItem(`collage-marks-${key}-user`);
+      if (localExists) {
+        statusEl.textContent = '✓ Welcome back! Your data will be loaded.';
+        statusEl.style.color = 'var(--color-success)'; return;
+      }
+      statusEl.textContent = 'Checking...'; statusEl.style.color = 'var(--text-muted)';
+      clearTimeout(_checkTimer);
+      _checkTimer = setTimeout(async () => {
+        if (Store._db) {
+          try {
+            const doc = await Store._usersDoc(key).get();
+            statusEl.textContent = doc.exists ? '✓ Welcome back! Your data will be loaded.' : '✦ New account will be created.';
+            statusEl.style.color = doc.exists ? 'var(--color-success)' : 'var(--color-info)';
+          } catch(e) { statusEl.textContent = '✦ New account will be created.'; statusEl.style.color = 'var(--color-info)'; }
+        } else {
+          statusEl.textContent = '✦ New account will be created.'; statusEl.style.color = 'var(--color-info)';
+        }
+      }, 500);
     };
     const handleSubmit = async () => {
       const name = (input ? input.value : '').trim();
