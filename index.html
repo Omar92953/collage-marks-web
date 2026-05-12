@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#191919">
+<title>Collage Marks</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<style>
+/* ── TOKENS ── */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --text-xs:12px; --text-sm:13px; --text-base:15px; --text-lg:17px;
+  --text-xl:22px; --text-2xl:28px; --text-3xl:34px; --text-4xl:48px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px; --sp-8:64px;
+  --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:24px; --radius-full:9999px;
+  --transition-fast:150ms cubic-bezier(0.2,0,0,1);
+  --transition-base:250ms cubic-bezier(0.25,1,0.5,1);
+  --transition-slow:400ms cubic-bezier(0.25,1,0.5,1);
+  --sidebar-w:260px;
+}
+:root[data-theme="light"],:root {
+  --color-primary:#000; --color-primary-hover:rgba(0,0,0,.7); --color-primary-light:rgba(0,0,0,.05);
+  --color-accent:#000; --color-success:#34c759; --color-warning:#ff9500; --color-danger:#ff3b30; --color-info:#5ac8fa;
+  --grade-A-color:#34c759; --grade-A-bg:rgba(52,199,89,.15);
+  --grade-B-color:#000; --grade-B-bg:rgba(0,0,0,.08);
+  --grade-C-color:#8e8e93; --grade-C-bg:rgba(142,142,147,.15);
+  --grade-F-color:#ff3b30; --grade-F-bg:rgba(255,59,48,.15);
+  --bg-base:#f2f2f7; --bg-surface:#fff; --bg-surface-2:rgba(255,255,255,.6); --bg-surface-3:rgba(255,255,255,.4); --bg-sidebar:rgba(242,242,247,.92);
+  --border:rgba(60,60,67,.12); --border-light:rgba(60,60,67,.08);
+  --text-primary:#000; --text-secondary:rgba(60,60,67,.6); --text-muted:rgba(60,60,67,.3);
+  --shadow-card:0 2px 10px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.02); --shadow-modal:0 10px 40px rgba(0,0,0,.1);
+  --scrollbar-thumb:rgba(0,0,0,.2); --input-bg:#fff;
+}
+:root[data-theme="dark"] {
+  --color-primary:#fff; --color-primary-hover:rgba(255,255,255,.7); --color-primary-light:rgba(255,255,255,.1);
+  --color-accent:#fff; --color-success:#30d158; --color-warning:#ff9f0a; --color-danger:#ff453a; --color-info:#64d2ff;
+  --grade-A-color:#30d158; --grade-A-bg:rgba(48,209,88,.15);
+  --grade-B-color:#fff; --grade-B-bg:rgba(255,255,255,.15);
+  --grade-C-color:#8e8e93; --grade-C-bg:rgba(142,142,147,.15);
+  --grade-F-color:#ff453a; --grade-F-bg:rgba(255,69,58,.15);
+  --bg-base:#191919; --bg-surface:#222224; --bg-surface-2:rgba(34,34,36,.6); --bg-surface-3:rgba(44,44,46,.6); --bg-sidebar:rgba(25,25,25,.85);
+  --border:rgba(84,84,88,.35); --border-light:rgba(84,84,88,.2);
+  --text-primary:#fff; --text-secondary:rgba(235,235,245,.6); --text-muted:rgba(235,235,245,.3);
+  --shadow-card:0 2px 10px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.25); --shadow-modal:0 10px 50px rgba(0,0,0,.5);
+  --scrollbar-thumb:rgba(255,255,255,.2); --input-bg:#191919;
+}
+
+/* ── BASE ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--font-sans);font-size:var(--text-base);color:var(--text-primary);background:var(--bg-base);-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+h1{font-size:var(--text-3xl);font-weight:700;line-height:1.2}
+h2{font-size:var(--text-2xl);font-weight:700;line-height:1.3}
+h3{font-size:var(--text-xl);font-weight:600;line-height:1.4}
+h4{font-size:var(--text-lg);font-weight:600}
+p{line-height:1.6;color:var(--text-secondary)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:var(--radius-full)}
+
+#app-layout{display:flex;min-height:100dvh;min-height:100vh}
+#main-content{flex:1;overflow-y:auto;background:var(--bg-base);min-width:0}
+#page-content{padding:var(--sp-5);min-height:100%;animation:pageFadeIn .2s ease}
+
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:var(--sp-4);color:var(--text-muted)}
+.loading-spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--color-primary);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hidden{display:none!important}
+.flex{display:flex}.flex-col{display:flex;flex-direction:column}.items-center{align-items:center}
+.justify-between{justify-content:space-between}.gap-2{gap:var(--sp-2)}.gap-3{gap:var(--sp-3)}
+.text-muted{color:var(--text-muted)}.text-secondary{color:var(--text-secondary)}
+.text-sm{font-size:var(--text-sm)}.text-xs{font-size:var(--text-xs)}
+.font-semibold{font-weight:600}.font-bold{font-weight:700}
+.mt-1{margin-top:var(--sp-1)}.mt-2{margin-top:var(--sp-2)}.mt-3{margin-top:var(--sp-3)}
+.mt-4{margin-top:var(--sp-4)}.mt-5{margin-top:var(--sp-5)}.mb-4{margin-bottom:var(--sp-4)}.mb-5{margin-bottom:var(--sp-5)}
+.w-full{width:100%}
+
+.page-header{margin-bottom:var(--sp-5)}
+.page-header .breadcrumb{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--text-sm);color:var(--text-muted);margin-bottom:var(--sp-3);flex-wrap:wrap}
+.page-header .breadcrumb a{color:var(--color-primary);transition:opacity var(--transition-fast)}
+.page-header .breadcrumb a:hover{opacity:.8}
+.page-header .breadcrumb .sep{color:var(--border)}
+.page-header h1{color:var(--text-primary)}
+.page-header .subtitle{font-size:var(--text-base);color:var(--text-secondary);margin-top:var(--sp-1)}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-4)}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-4)}
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--sp-4)}
+.empty-state{text-align:center;padding:var(--sp-8) var(--sp-6);color:var(--text-muted)}
+.empty-state .empty-icon{font-size:48px;margin-bottom:var(--sp-4);opacity:.5}
+.empty-state h3{color:var(--text-secondary);margin-bottom:var(--sp-2)}
+.empty-state p{font-size:var(--text-sm);max-width:320px;margin:0 auto var(--sp-5)}
+.empty-compact{padding:var(--sp-4);color:var(--text-muted);font-size:var(--text-sm);text-align:center}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-4)}
+.section-header h2,.section-header h3{color:var(--text-primary)}
+
+/* ── COMPONENTS ── */
+.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--sp-5);box-shadow:var(--shadow-card);transition:transform var(--transition-fast),box-shadow var(--transition-fast)}
+.card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1),0 12px 32px rgba(0,0,0,.08)}
+.card-clickable{cursor:pointer}
+.card-clickable:hover{border-color:var(--text-primary)}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:var(--sp-4)}
+.card-title{font-size:var(--text-base);font-weight:600;color:var(--text-primary)}
+.card-subtitle{font-size:var(--text-sm);color:var(--text-secondary);margin-top:2px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);font-weight:500;font-family:var(--font-sans);border-radius:var(--radius-sm);cursor:pointer;border:1px solid transparent;transition:all var(--transition-fast);white-space:nowrap;line-height:1.5}
+.btn-primary{background:var(--text-primary);color:var(--bg-base)}.btn-primary:hover{background:var(--color-primary-hover)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-secondary)}.btn-ghost:hover{background:var(--bg-surface-2);color:var(--text-primary)}
+.btn-danger{background:var(--grade-F-bg);color:var(--color-danger);border:1px solid var(--border-light)}.btn-danger:hover{background:var(--color-danger);color:#fff}
+.btn-success{background:var(--grade-A-bg);color:var(--color-success);border:1px solid var(--border-light)}.btn-success:hover{background:var(--color-success);color:#fff}
+.btn-sm{padding:4px var(--sp-3);font-size:var(--text-xs)}
+.btn-icon{padding:var(--sp-2);border-radius:var(--radius-sm);background:transparent;border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all var(--transition-fast)}
+.btn-icon:hover{background:var(--bg-surface-2);color:var(--text-primary)}
+.btn-icon.danger:hover{background:rgba(239,68,68,.1);color:var(--color-danger);border-color:rgba(239,68,68,.2)}
+
+.input,.select,.textarea{width:100%;padding:var(--sp-2) var(--sp-3);background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:16px;font-family:var(--font-sans);transition:border-color var(--transition-fast),box-shadow var(--transition-fast);outline:none}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary-light)}
+.input::placeholder{color:var(--text-muted)}
+.select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+.textarea{resize:vertical;min-height:80px}
+.input-group{display:flex;flex-direction:column;gap:var(--sp-1)}
+.input-group label{font-size:var(--text-sm);font-weight:500;color:var(--text-secondary)}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3)}
+input,select,textarea{font-size:16px!important}
+
+.grade-badge{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;font-weight:700;font-size:var(--text-lg);flex-shrink:0}
+.grade-badge.grade-A{background:var(--grade-A-bg);color:var(--grade-A-color)}
+.grade-badge.grade-B{background:var(--grade-B-bg);color:var(--grade-B-color)}
+.grade-badge.grade-C{background:var(--grade-C-bg);color:var(--grade-C-color)}
+.grade-badge.grade-F{background:var(--grade-F-bg);color:var(--grade-F-color)}
+.grade-badge.grade-none{background:var(--bg-surface-2);color:var(--text-muted)}
+.grade-badge-lg{width:64px;height:64px;font-size:var(--text-3xl);border-radius:50%}
+.grade-badge-sm{width:28px;height:28px;font-size:var(--text-xs);border-radius:50%}
+
+.stat-card{display:flex;flex-direction:column;gap:var(--sp-2)}
+.stat-card .stat-label{font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+.stat-card .stat-value{font-size:var(--text-4xl);font-weight:800;color:var(--text-primary);line-height:1}
+.stat-card .stat-sub{font-size:var(--text-sm);color:var(--text-secondary)}
+
+.progress-bar{height:6px;background:var(--bg-surface-2);border-radius:var(--radius-full);overflow:hidden}
+.progress-bar__fill{height:100%;border-radius:var(--radius-full);transition:width 500ms ease}
+.progress-bar__fill.grade-A{background:var(--grade-A-color)}
+.progress-bar__fill.grade-B{background:var(--text-primary)}
+.progress-bar__fill.grade-C{background:var(--text-secondary)}
+.progress-bar__fill.grade-F,.progress-bar__fill.grade-none{background:var(--text-muted)}
+.progress-bar__fill.default{background:var(--text-primary)}
+.progress-bar-sm{height:4px}
+
+.countdown-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:600;white-space:nowrap}
+.countdown-chip.urgent{background:var(--grade-F-bg);color:var(--grade-F-color)}
+.countdown-chip.mid{background:var(--grade-C-bg);color:var(--grade-C-color)}
+.countdown-chip.far{background:var(--grade-A-bg);color:var(--grade-A-color)}
+.countdown-chip.today{background:rgba(59,130,246,.12);color:var(--color-info)}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:900;opacity:0;pointer-events:none;transition:opacity var(--transition-base);backdrop-filter:blur(4px);padding:var(--sp-4)}
+.modal-overlay.visible{opacity:1;pointer-events:all}
+.modal-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-modal);width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;transform:scale(.96) translateY(8px);transition:transform var(--transition-base)}
+.modal-overlay.visible .modal-card{transform:scale(1) translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:var(--sp-4) var(--sp-5);border-bottom:1px solid var(--border);background:var(--bg-surface-2)}
+.modal-header h2{font-size:var(--text-lg);font-weight:600;color:var(--text-primary)}
+.modal-close-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:var(--sp-1);border-radius:var(--radius-sm);transition:all var(--transition-fast);display:flex}
+.modal-close-btn:hover{color:var(--text-primary);background:var(--bg-surface-3)}
+.modal-body{padding:var(--sp-5);overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:var(--sp-4)}
+.modal-footer{display:flex;justify-content:flex-end;gap:var(--sp-3);padding:var(--sp-4) var(--sp-5);border-top:2px solid var(--border);background:var(--bg-surface-2)}
+
+#toast-container{position:fixed;bottom:var(--sp-5);right:var(--sp-5);z-index:9999;display:flex;flex-direction:column-reverse;gap:var(--sp-2);pointer-events:none}
+.toast{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) var(--sp-4);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-modal);font-size:var(--text-sm);font-weight:500;color:var(--text-primary);min-width:220px;max-width:360px;opacity:0;transform:translateX(20px);transition:all var(--transition-base);pointer-events:all}
+.toast.visible{opacity:1;transform:translateX(0)}
+.toast-success{border-left:3px solid var(--color-success)}
+.toast-error{border-left:3px solid var(--color-danger)}
+.toast-info{border-left:3px solid var(--color-info)}
+.toast-warning{border-left:3px solid var(--color-warning)}
+.toast-icon{font-size:16px}
+
+.quote-card{background:linear-gradient(135deg,var(--color-primary-light),rgba(34,211,238,.08));border:1px solid rgba(99,102,241,.2);border-radius:var(--radius-lg);padding:var(--sp-5);position:relative;overflow:hidden}
+.quote-card::before{content:'"';position:absolute;top:-10px;left:var(--sp-4);font-size:80px;color:var(--color-primary);opacity:.15;font-family:Georgia,serif;line-height:1}
+.quote-text{font-size:var(--text-base);font-style:italic;color:var(--text-primary);line-height:1.7;position:relative}
+
+.component-row{background:var(--bg-surface-2);border:1px solid var(--border-light);border-radius:var(--radius-md);padding:var(--sp-4);display:flex;align-items:center;gap:var(--sp-4);margin-bottom:var(--sp-2)}
+.component-info{flex:1;min-width:0}
+.component-label{font-weight:600;font-size:var(--text-sm);color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.component-meta{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px}
+.component-score{text-align:right;flex-shrink:0}
+.score-value{font-weight:700;font-size:var(--text-sm);color:var(--text-primary)}
+.score-pct{font-size:var(--text-xs);color:var(--text-muted)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:600}
+.badge-accent{background:rgba(100,210,255,.15);color:var(--color-info)}
+
+.exam-countdown-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:var(--sp-4);display:flex;align-items:center;gap:var(--sp-3)}
+.countdown-days{font-size:var(--text-2xl);font-weight:800;color:var(--text-primary);min-width:48px;text-align:center;line-height:1}
+.countdown-days span{display:block;font-size:var(--text-xs);font-weight:400;color:var(--text-muted);margin-top:2px}
+
+.toggle-switch{position:relative;display:inline-block;width:44px;height:24px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--bg-surface-3);border:1px solid var(--border);border-radius:var(--radius-full);transition:background var(--transition-base)}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;background:var(--text-muted);border-radius:50%;transition:transform var(--transition-base),background var(--transition-base)}
+.toggle-switch input:checked+.toggle-slider{background:var(--color-primary);border-color:var(--color-primary)}
+.toggle-switch input:checked+.toggle-slider::before{transform:translateX(20px);background:#fff}
+
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:var(--sp-4) 0;border-bottom:1px solid var(--border-light)}
+.setting-row:last-child{border-bottom:none}
+.setting-row-label{font-size:var(--text-base);font-weight:500;color:var(--text-primary)}
+.setting-row-sub{font-size:var(--text-sm);color:var(--text-muted);margin-top:2px}
+
+.subject-list-item{display:flex;align-items:center;justify-content:space-between;padding:var(--sp-3) var(--sp-4);background:var(--bg-surface-2);border:1px solid var(--border-light);border-radius:var(--radius-md);margin-bottom:var(--sp-2);transition:all var(--transition-fast)}
+.subject-list-item:hover{border-color:var(--color-primary);background:var(--color-primary-light)}
+.subject-list-item .subject-name{font-weight:600;font-size:var(--text-sm);color:var(--text-primary)}
+.subject-list-item .subject-meta{font-size:var(--text-xs);color:var(--text-muted);margin-top:2px}
+
+.grade-boundary-row{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3);background:var(--bg-surface-2);border-radius:var(--radius-sm);margin-bottom:var(--sp-2)}
+.grade-boundary-row .grade-label{font-weight:700;width:28px;text-align:center;font-size:var(--text-base)}
+
+.tabs{display:flex;gap:2px;background:var(--bg-surface-2);padding:3px;border-radius:var(--radius-md);margin-bottom:var(--sp-5)}
+.tab-btn{flex:1;padding:var(--sp-2) var(--sp-3);background:transparent;border:none;border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all var(--transition-fast)}
+.tab-btn.active{background:var(--bg-surface);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+#unit-direct-toggle-btn.active{background:var(--color-primary-light);color:var(--color-primary);border-color:var(--color-primary)}
+
+/* ── SIDEBAR ── */
+#sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--bg-sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:transform var(--transition-base);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.sidebar-header{padding:var(--sp-5) var(--sp-4);border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-user{display:flex;align-items:center;gap:var(--sp-3)}
+.sidebar-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg-surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:var(--text-base);color:var(--text-primary);flex-shrink:0}
+.sidebar-user-name{font-weight:600;font-size:var(--text-sm);color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;display:block}
+.sidebar-user-sub{font-size:var(--text-xs);color:#64748b;display:block;margin-top:1px}
+.sidebar-nav{flex:1;overflow-y:auto;padding:var(--sp-3) var(--sp-2)}
+.sidebar-nav::-webkit-scrollbar{width:3px}
+.sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px}
+.nav-item{display:flex;align-items:center;gap:var(--sp-3);padding:7px var(--sp-3);border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:500;color:var(--text-secondary);cursor:pointer;text-decoration:none;transition:all var(--transition-fast);margin-bottom:2px}
+.nav-item:hover{background:var(--bg-surface-2);color:var(--text-primary)}
+.nav-item.active{background:var(--bg-surface-3);color:var(--text-primary)}
+.nav-section-label{font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#475569;padding:var(--sp-4) var(--sp-3) var(--sp-2)}
+.sidebar-year-group{margin-bottom:var(--sp-1)}
+.sidebar-year-toggle{display:flex;align-items:center;gap:var(--sp-2);padding:6px var(--sp-3);border-radius:var(--radius-sm);font-size:var(--text-sm);font-weight:600;color:#64748b;cursor:pointer;transition:all var(--transition-fast);user-select:none}
+.sidebar-year-toggle:hover{background:rgba(255,255,255,.06);color:#94a3b8}
+.sidebar-year-toggle .toggle-arrow{width:12px;height:12px;margin-left:auto;transition:transform var(--transition-fast);flex-shrink:0}
+.sidebar-year-toggle.open .toggle-arrow{transform:rotate(90deg)}
+.sidebar-year-children{display:none;padding-left:var(--sp-3);border-left:1px solid rgba(255,255,255,.06);margin-left:calc(var(--sp-3) + 7px)}
+.sidebar-year-children.open{display:block}
+.sidebar-term-item{padding:5px var(--sp-2);border-radius:var(--radius-sm);font-size:var(--text-xs);color:#475569;cursor:pointer;transition:all var(--transition-fast)}
+.sidebar-term-item:hover{background:rgba(255,255,255,.05);color:#94a3b8}
+.nav-divider{height:1px;background:rgba(255,255,255,.06);margin:var(--sp-2) var(--sp-3)}
+
+/* ── ANIMATIONS ── */
+@keyframes pageFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.stagger-1{animation:slideUp .3s ease .05s both}
+.stagger-2{animation:slideUp .3s ease .10s both}
+.stagger-3{animation:slideUp .3s ease .15s both}
+.stagger-4{animation:slideUp .3s ease .20s both}
+
+/* ── BOTTOM NAV (mobile) ── */
+#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg-sidebar);border-top:1px solid var(--border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:500;justify-content:space-around;align-items:stretch;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:500;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:8px 12px;border-radius:0;transition:color var(--transition-fast);flex:1;text-decoration:none;min-height:56px}
+.bottom-nav-item svg{flex-shrink:0}
+.bottom-nav-item.active{color:var(--color-primary)}
+.bottom-nav-item:hover{color:var(--text-primary)}
+
+/* ── YEAR SHEET (mobile) ── */
+#year-sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;backdrop-filter:blur(4px)}
+#year-sheet-overlay.visible{display:block}
+#year-sheet{position:absolute;bottom:0;left:0;right:0;background:var(--bg-surface);border-radius:20px 20px 0 0;padding:var(--sp-5);max-height:75vh;overflow-y:auto;padding-bottom:calc(var(--sp-5) + env(safe-area-inset-bottom))}
+#year-sheet-handle{width:36px;height:4px;background:var(--border);border-radius:var(--radius-full);margin:0 auto var(--sp-4)}
+.year-sheet-year{padding:var(--sp-3) 0;border-bottom:1px solid var(--border)}
+.year-sheet-year-label{font-weight:700;font-size:var(--text-base);color:var(--text-primary);cursor:pointer;padding:var(--sp-2) 0;display:block}
+.year-sheet-term{padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;border-radius:var(--radius-sm);transition:all var(--transition-fast)}
+.year-sheet-term:hover{background:var(--bg-surface-2);color:var(--text-primary)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:767px){
+  #sidebar{display:none!important}
+  #bottom-nav{display:flex}
+  #page-content{padding:var(--sp-4);padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+  .grid-3{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .stat-card .stat-value{font-size:var(--text-2xl)}
+  #toast-container{bottom:calc(72px + env(safe-area-inset-bottom));right:var(--sp-3);left:var(--sp-3)}
+  .toast{min-width:0;max-width:100%}
+}
+@media(min-width:768px){
+  #bottom-nav{display:none!important}
+  #sidebar{display:flex}
+}
+</style>
+</head>
+<body>
+
+<div id="app-layout">
+  <nav id="sidebar" class="hidden">
+    <div class="sidebar-header">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">S</div>
+        <div class="sidebar-user-info">
+          <span class="sidebar-user-name" id="sidebar-user-name">Student</span>
+          <span class="sidebar-user-sub">Collage Marks</span>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <a href="#/home" class="nav-item" data-route="home">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        <span>Home</span>
+      </a>
+      <div class="nav-section-label">Academic Years</div>
+      <div id="sidebar-years"></div>
+      <div class="nav-divider"></div>
+      <a href="#/settings" class="nav-item" data-route="settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span>Settings</span>
+      </a>
+    </div>
+  </nav>
+  <main id="main-content">
+    <div id="page-content">
+      <div class="loading-screen">
+        <div class="loading-spinner"></div>
+        <p>Loading...</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<nav id="bottom-nav">
+  <a href="#/home" class="bottom-nav-item" data-route="home">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Home
+  </a>
+  <button class="bottom-nav-item" id="bn-years">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+    Years
+  </button>
+  <a href="#/settings" class="bottom-nav-item" data-route="settings">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Settings
+  </a>
+</nav>
+
+<div id="year-sheet-overlay">
+  <div id="year-sheet">
+    <div id="year-sheet-handle"></div>
+    <div id="year-sheet-content"></div>
+  </div>
+</div>
+
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2 id="modal-title">Dialog</h2>
+      <button class="modal-close-btn" onclick="Modal.close()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="modal-body" class="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="Modal.close()">Cancel</button>
+      <button id="modal-confirm" class="btn btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+const PageControllers = {};
+
+/* ── STORE (localStorage) ── */
+const Store = {
+  _LS_USER:     'collage-marks-user',
+  _LS_SETTINGS: 'collage-marks-settings',
+  _LS_ACADEMICS:'collage-marks-academics',
+  _academics: null, _user: null, _settings: null, _listeners: {},
+
+  async init() {
+    const u = localStorage.getItem(this._LS_USER);
+    const s = localStorage.getItem(this._LS_SETTINGS);
+    const a = localStorage.getItem(this._LS_ACADEMICS);
+    this._user     = u ? JSON.parse(u) : { name: null };
+    this._settings = s ? JSON.parse(s) : { theme: 'dark', gradeBoundaries: { A: 85, B: 75, C: 60, F: 0 }, customQuotes: [] };
+    this._academics = a ? JSON.parse(a) : { years: [] };
+  },
+  getUser()      { return this._user; },
+  getSettings()  { return this._settings; },
+  getAcademics() { return this._academics; },
+  getYear(id)    { return this._academics.years.find(y => y.id === id) || null; },
+  getTerm(yearId, termId) {
+    const year = this.getYear(yearId);
+    return year ? (year.terms.find(t => t.id === termId) || null) : null;
+  },
+  getModule(yearId, termId, id) {
+    const term = this.getTerm(yearId, termId);
+    return term ? (term.modules.find(m => m.id === id) || null) : null;
+  },
+  getSubject(yearId, termId, id) {
+    const term = this.getTerm(yearId, termId);
+    return term ? (term.subjects.find(s => s.id === id) || null) : null;
+  },
+  getUnit(yearId, termId, type, id) {
+    return type === 'module' ? this.getModule(yearId, termId, id) : this.getSubject(yearId, termId, id);
+  },
+  getNestedSubject(yearId, termId, moduleId, subjectId) {
+    const mod = this.getModule(yearId, termId, moduleId);
+    return (mod && mod.subjects) ? (mod.subjects.find(s => s.id === subjectId) || null) : null;
+  },
+  getAllUpcomingExams() { return Countdown.getAllExams(this._academics); },
+
+  async setUserName(name) {
+    this._user.name = name;
+    localStorage.setItem(this._LS_USER, JSON.stringify(this._user));
+    const initials = name.trim().slice(0, 1).toUpperCase();
+    const avatarEl = document.getElementById('sidebar-avatar');
+    const nameEl   = document.getElementById('sidebar-user-name');
+    if (avatarEl) avatarEl.textContent = initials;
+    if (nameEl)   nameEl.textContent   = name.trim();
+    this.emit('user:changed', this._user);
+  },
+  async saveAcademics() {
+    localStorage.setItem(this._LS_ACADEMICS, JSON.stringify(this._academics));
+    this.emit('academics:changed', this._academics);
+  },
+  async saveSettings() {
+    localStorage.setItem(this._LS_SETTINGS, JSON.stringify(this._settings));
+    this.emit('settings:changed', this._settings);
+  },
+
+  generateId(prefix = 'id') { return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`; },
+  on(event, fn)  { if (!this._listeners[event]) this._listeners[event] = []; this._listeners[event].push(fn); },
+  off(event, fn) { if (this._listeners[event]) this._listeners[event] = this._listeners[event].filter(f => f !== fn); },
+  emit(event, data) { (this._listeners[event] || []).forEach(fn => fn(data)); },
+
+  addYear(label, opts = {}) {
+    const year = {
+      id: this.generateId('year'), label,
+      totalMarks: opts.totalMarks || 600,
+      order: this._academics.years.length + 1,
+      terms: [
+        { id: this.generateId('term'), label: 'Term 1', order: 1, modules: [], subjects: [] },
+        { id: this.generateId('term'), label: 'Term 2', order: 2, modules: [], subjects: [] },
+      ]
+    };
+    this._academics.years.push(year);
+    return year;
+  },
+  addModule(yearId, termId, name, opts = {}) {
+    const term = this.getTerm(yearId, termId);
+    if (!term) return null;
+    const mod = { id: this.generateId('mod'), name, totalMarks: opts.totalMarks || 100, order: (term.modules || []).length + 1, components: {} };
+    if (opts.directMark !== null && opts.directMark !== undefined) mod.directMark = opts.directMark;
+    this.recalculateDefaultComponents(mod);
+    if (!term.modules) term.modules = [];
+    term.modules.push(mod);
+    return mod;
+  },
+  addSubject(yearId, termId, name, opts = {}) {
+    const term = this.getTerm(yearId, termId);
+    if (!term) return null;
+    const subj = { id: this.generateId('subj'), name, totalMarks: opts.totalMarks || 100, order: (term.subjects || []).length + 1, components: {} };
+    if (opts.directMark !== null && opts.directMark !== undefined) subj.directMark = opts.directMark;
+    this.recalculateDefaultComponents(subj);
+    if (!term.subjects) term.subjects = [];
+    term.subjects.push(subj);
+    return subj;
+  },
+  recalculateDefaultComponents(unit) {
+    const total = unit.totalMarks || 100;
+    const defaults = {
+      endModuleExam: { label: 'End Module Exam', mark: null, totalMarks: Math.round(total * 0.2), examDate: null },
+      practical:     { label: 'Practical',       mark: null, totalMarks: Math.round(total * 0.3), examDate: null },
+      finalExam:     { label: 'Final Exam',       mark: null, totalMarks: Math.round(total * 0.4), examDate: null },
+      activity:      { label: 'Activity',         mark: null, totalMarks: Math.round(total * 0.1), isActivity: true },
+    };
+    if (!unit.components) unit.components = {};
+    for (const key in defaults) {
+      if (!unit.components[key]) unit.components[key] = defaults[key];
+      else unit.components[key].totalMarks = defaults[key].totalMarks;
+    }
+  },
+  deleteYear(yearId)                       { this._academics.years = this._academics.years.filter(y => y.id !== yearId); },
+  deleteTerm(yearId, termId)               { const y = this.getYear(yearId); if (y) y.terms = y.terms.filter(t => t.id !== termId); },
+  deleteModule(yearId, termId, moduleId)   { const t = this.getTerm(yearId, termId); if (t) t.modules = t.modules.filter(m => m.id !== moduleId); },
+  deleteSubject(yearId, termId, subjectId) { const t = this.getTerm(yearId, termId); if (t) t.subjects = t.subjects.filter(s => s.id !== subjectId); },
+};
+
+/* ── CALCULATOR ── */
+const Calculator = {
+  unitMarks(unit) {
+    if (!unit) return { earned: 0, total: 0, hasData: false };
+    if (unit.directMark !== null && unit.directMark !== undefined)
+      return { earned: unit.directMark, total: unit.totalMarks || 0, hasData: true };
+    if (unit.subjects && unit.subjects.length > 0 && !unit.components) {
+      let earned = 0, hasData = false;
+      for (const subj of unit.subjects) {
+        for (const c of Object.values(subj.components || {})) {
+          if (c.mark !== null && c.mark !== undefined) { earned += c.mark; hasData = true; }
+        }
+      }
+      return { earned, total: unit.totalMarks || 0, hasData };
+    }
+    let earned = 0, total = 0, hasData = false;
+    for (const c of Object.values(unit.components || {})) {
+      total += c.totalMarks || 0;
+      if (c.mark !== null && c.mark !== undefined) { earned += c.mark; hasData = true; }
+    }
+    return { earned, total: unit.totalMarks || total, hasData };
+  },
+  subjectMarks(s)  { return this.unitMarks(s); },
+  moduleMarks(m)   { return this.unitMarks(m); },
+  termMarks(term) {
+    let earned = 0, total = 0, hasData = false;
+    for (const unit of [...(term.modules || []), ...(term.subjects || [])]) {
+      const um = this.unitMarks(unit); earned += um.earned; total += um.total; if (um.hasData) hasData = true;
+    }
+    return { earned, total, hasData };
+  },
+  yearMarks(year) {
+    let earned = 0, hasData = false;
+    for (const term of year.terms || []) { const tm = this.termMarks(term); earned += tm.earned; if (tm.hasData) hasData = true; }
+    return { earned, total: year.totalMarks || 0, hasData };
+  },
+  overallMarks(academics) {
+    let earned = 0, total = 0, hasData = false;
+    for (const year of academics.years || []) { const ym = this.yearMarks(year); earned += ym.earned; total += ym.total; if (ym.hasData) hasData = true; }
+    return { earned, total, hasData };
+  },
+  subjectAverage(s) { return this.unitAverage(s); },
+  unitAverage(unit) {
+    const { earned, total, hasData } = this.unitMarks(unit);
+    return (!hasData || total === 0) ? null : (earned / total) * 100;
+  },
+  moduleAverage(m) {
+    const { earned, hasData } = this.unitMarks(m);
+    return (!hasData || !m.totalMarks) ? null : (earned / m.totalMarks) * 100;
+  },
+  termAverage(term) {
+    const { earned, total, hasData } = this.termMarks(term);
+    return (!hasData || total === 0) ? null : (earned / total) * 100;
+  },
+  yearAverage(year) {
+    const { earned, hasData } = this.yearMarks(year);
+    return (!hasData || !year.totalMarks) ? null : (earned / year.totalMarks) * 100;
+  },
+  overallAverage(academics) {
+    const { earned, total, hasData } = this.overallMarks(academics);
+    return (!hasData || total === 0) ? null : (earned / total) * 100;
+  },
+  getGrade(avg, boundaries) {
+    if (avg === null || avg === undefined) return '--';
+    boundaries = boundaries || { A: 85, B: 75, C: 60, F: 0 };
+    if (avg >= boundaries.A) return 'A';
+    if (avg >= boundaries.B) return 'B';
+    if (avg >= boundaries.C) return 'C';
+    return 'F';
+  },
+  gradeClass(grade) { return grade === '--' ? 'grade-none' : `grade-${grade}`; },
+  fmt(val) { return (val === null || val === undefined) ? '--' : val.toFixed(1) + '%'; },
+  fmtMarks(earned, total) { return (!total) ? '--' : `${earned} / ${total}`; },
+  fmtAbsolute(earned, total) {
+    if (!total) return '--';
+    return `${earned} / ${total} (${((earned / total) * 100).toFixed(1)}%)`;
+  },
+  predict(subject, targetPct) {
+    if (subject.directMark !== null && subject.directMark !== undefined) {
+      const actual = (subject.directMark / (subject.totalMarks || 1)) * 100;
+      return { _final: actual, _achieved: actual >= targetPct };
+    }
+    const comps = subject.components;
+    const result = {};
+    const subjectTotal = Object.values(comps).reduce((s, c) => s + (c.totalMarks || 0), 0);
+    const targetMarks  = (targetPct / 100) * subjectTotal;
+    let earnedSoFar = 0, remainingTotalMks = 0, allEntered = true;
+    for (const [key, comp] of Object.entries(comps)) {
+      if (comp.mark !== null && comp.mark !== undefined) earnedSoFar += comp.mark;
+      else { remainingTotalMks += comp.totalMarks || 0; allEntered = false; }
+    }
+    if (allEntered) {
+      const actual = this.subjectAverage(subject);
+      result._final = actual; result._achieved = actual !== null && actual >= targetPct;
+      return result;
+    }
+    const neededMarks = targetMarks - earnedSoFar;
+    const requiredPct = remainingTotalMks > 0 ? (neededMarks / remainingTotalMks) * 100 : Infinity;
+    result._required = requiredPct; result._neededMarks = neededMarks;
+    result._remainingTotal = remainingTotalMks;
+    result._achievable = requiredPct <= 100 && neededMarks <= remainingTotalMks;
+    result._targetPct = targetPct;
+    for (const [key, comp] of Object.entries(comps)) {
+      if (comp.mark === null || comp.mark === undefined) {
+        const needed = Math.max(0, Math.min(comp.totalMarks || 0, Math.round((comp.totalMarks || 0) * requiredPct / 100)));
+        result[key] = { needed, outOf: comp.totalMarks || 0, pct: requiredPct };
+      }
+    }
+    return result;
+  },
+  completionPercent(subject) {
+    const comps = Object.values(subject.components || {});
+    if (!comps.length) return 0;
+    return Math.round((comps.filter(c => c.mark !== null && c.mark !== undefined).length / comps.length) * 100);
+  },
+  weakestSubject(module) {
+    if (!module || !module.subjects) return null;
+    let worst = null, worstAvg = Infinity;
+    for (const sub of module.subjects) { const avg = this.subjectAverage(sub); if (avg !== null && avg < worstAvg) { worstAvg = avg; worst = sub; } }
+    return worst;
+  },
+  gradeZone(unit, bounds) {
+    bounds = bounds || { A: 85, B: 75, C: 60 };
+    const unitTotal = unit.totalMarks || 0;
+    if (!unitTotal) return null;
+    if (unit.directMark !== null && unit.directMark !== undefined) {
+      const pct = (unit.directMark / unitTotal) * 100;
+      const grade = this.getGrade(pct, bounds);
+      return { mode: 'direct', scoredPct: pct, maxPct: pct, currentGrade: grade,
+        aAchievable: pct >= bounds.A, bAchievable: pct >= bounds.B, cAchievable: pct >= bounds.C,
+        safetyMargin: this._safetyMargin(pct, grade, bounds), remainingMarks: 0 };
+    }
+    const comps = Object.values(unit.components || {});
+    let earnedSoFar = 0, remainingMarks = 0;
+    for (const c of comps) {
+      if (c.mark !== null && c.mark !== undefined) earnedSoFar += c.mark;
+      else remainingMarks += (c.totalMarks || 0);
+    }
+    const maxPossible = earnedSoFar + remainingMarks;
+    const maxPct = (maxPossible / unitTotal) * 100;
+    const aAchievable = maxPct >= bounds.A, bAchievable = maxPct >= bounds.B, cAchievable = maxPct >= bounds.C;
+    const bestAchievableGrade = aAchievable ? 'A' : bAchievable ? 'B' : cAchievable ? 'C' : 'F';
+    const targetBoundary = aAchievable ? bounds.A : bAchievable ? bounds.B : cAchievable ? bounds.C : null;
+    let safeDropMarks = null;
+    if (targetBoundary !== null) safeDropMarks = Math.floor(maxPossible - (targetBoundary / 100) * unitTotal);
+    return { mode: 'components', earnedSoFar, remainingMarks, maxPossible, maxPct,
+      aAchievable, bAchievable, cAchievable, bestAchievableGrade, safeDropMarks, targetBoundary };
+  },
+  _safetyMargin(pct, grade, bounds) {
+    if (grade === 'A') return pct - bounds.A;
+    if (grade === 'B') return pct - bounds.B;
+    if (grade === 'C') return pct - bounds.C;
+    return null;
+  },
+};
+
+/* ── QUOTES ── */
+const BUILT_IN_QUOTES = [
+  "Success is the sum of small efforts repeated day in and day out.",
+  "Don't watch the clock; do what it does. Keep going.",
+  "The secret of getting ahead is getting started.",
+  "Education is the most powerful weapon you can use to change the world.",
+  "Push yourself because no one else is going to do it for you.",
+  "Great things never come from comfort zones.",
+  "Dream it. Wish it. Do it.",
+  "Success doesn't just find you. You have to go out and get it.",
+  "The harder you work for something, the greater you'll feel when you achieve it.",
+  "Dream bigger. Do bigger.",
+  "Don't stop when you're tired. Stop when you're done.",
+  "Wake up with determination. Go to bed with satisfaction.",
+  "Do something today that your future self will thank you for.",
+  "Little things make big days.",
+  "It's going to be hard, but hard is not impossible.",
+  "Don't wait for opportunity. Create it.",
+  "Sometimes we're tested not to show our weaknesses, but to discover our strengths.",
+  "The key to success is to focus on goals, not obstacles.",
+  "Dream it, believe it, build it.",
+  "Work hard in silence, let success make the noise.",
+  "You don't have to be great to start, but you have to start to be great.",
+  "Act as if what you do makes a difference. It does.",
+  "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+  "Believe you can and you're halfway there.",
+  "Your limitation — it's only your imagination.",
+  "Sometimes later becomes never. Do it now.",
+  "Hard work beats talent when talent doesn't work hard.",
+  "Stay focused and never give up.",
+  "Your only limit is your mind.",
+  "Strive for progress, not perfection.",
+  "Difficult roads often lead to beautiful destinations.",
+  "The best time to plant a tree was 20 years ago. The second best time is now.",
+  "An investment in knowledge pays the best interest.",
+  "The more that you read, the more things you will know.",
+  "Learning is not attained by chance; it must be sought for with ardor and attended to with diligence.",
+  "Education is not the filling of a pail, but the lighting of a fire.",
+  "The beautiful thing about learning is that no one can take it away from you.",
+  "Study hard, for the well is deep, and our brains are shallow.",
+  "Live as if you were to die tomorrow. Learn as if you were to live forever.",
+  "The roots of education are bitter, but the fruit is sweet.",
+  "Opportunities don't happen. You create them.",
+  "Don't let what you cannot do interfere with what you can do.",
+  "Genius is one percent inspiration and ninety-nine percent perspiration.",
+  "Motivation is what gets you started. Habit is what keeps you going.",
+  "You are braver than you believe, stronger than you seem, and smarter than you think.",
+  "What you get by achieving your goals is not as important as what you become.",
+  "If you are not willing to learn, no one can help you. If you are determined to learn, no one can stop you.",
+  "Setting goals is the first step in turning the invisible into the visible.",
+  "The secret to getting ahead is getting started with what you have, where you are.",
+  "Fall seven times, stand up eight.",
+];
+const Quotes = {
+  getRandom() {
+    const custom = (Store.getSettings().customQuotes || []);
+    const all = [...BUILT_IN_QUOTES, ...custom.filter(q => q.trim())];
+    return all[Math.floor(Math.random() * all.length)];
+  },
+  getBuiltInCount() { return BUILT_IN_QUOTES.length; },
+  getAll() {
+    return { builtIn: BUILT_IN_QUOTES, custom: (Store.getSettings().customQuotes || []) };
+  },
+  async addCustom(text) {
+    if (!text || !text.trim()) return;
+    Store.getSettings().customQuotes.push(text.trim());
+    await Store.saveSettings();
+  },
+  async deleteCustom(index) {
+    Store.getSettings().customQuotes.splice(index, 1);
+    await Store.saveSettings();
+  },
+};
+
+/* ── COUNTDOWN ── */
+const COMPONENT_LABELS = { endModuleExam: 'End Module Exam', finalExam: 'Final Exam', practical: 'Practical', activities: 'Activities' };
+const Countdown = {
+  daysUntil(isoDate) {
+    if (!isoDate) return null;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const exam = new Date(isoDate); exam.setHours(0,0,0,0);
+    return Math.round((exam - today) / 86400000);
+  },
+  formatDays(days) {
+    if (days === null) return '';
+    if (days < 0)  return `${Math.abs(days)}d ago`;
+    if (days === 0) return 'Today!';
+    if (days === 1) return 'Tomorrow';
+    return `${days} days`;
+  },
+  chipClass(days) {
+    if (days === null) return '';
+    if (days === 0)  return 'countdown-chip today';
+    if (days <= 3)   return 'countdown-chip urgent';
+    if (days <= 14)  return 'countdown-chip mid';
+    return 'countdown-chip far';
+  },
+  getAllExams(academics) {
+    const results = [];
+    if (!academics || !academics.years) return results;
+    for (const year of academics.years) {
+      for (const term of year.terms || []) {
+        const allUnits = [
+          ...(term.modules || []).map(m => ({...m, _type:'module'})),
+          ...(term.subjects || []).map(s => ({...s, _type:'subject'}))
+        ];
+        for (const unit of allUnits) {
+          for (const [key, comp] of Object.entries(unit.components || {})) {
+            if (comp.examDate) {
+              const days = this.daysUntil(comp.examDate);
+              results.push({ label: unit.name, sublabel: comp.label || COMPONENT_LABELS[key] || key,
+                date: comp.examDate, days, unitId: unit.id, type: unit._type, yearId: year.id, termId: term.id });
+            }
+          }
+        }
+      }
+    }
+    return results.sort((a, b) => a.days - b.days);
+  },
+  getUpcoming(n, academics) {
+    return this.getAllExams(academics).filter(e => e.days !== null && e.days >= 0).slice(0, n || 5);
+  },
+  formatDate(isoDate) {
+    if (!isoDate) return 'No date set';
+    return new Date(isoDate).toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+  },
+};
+
+/* ── THEME ── */
+const Theme = {
+  apply(mode) { document.documentElement.setAttribute('data-theme', mode || 'dark'); },
+  current()   { return Store.getSettings().theme || 'dark'; },
+  async toggle() {
+    const next = this.current() === 'dark' ? 'light' : 'dark';
+    Store.getSettings().theme = next;
+    this.apply(next);
+    await Store.saveSettings();
+    return next;
+  },
+};
+
+/* ── PAGE TEMPLATES (return HTML strings) ── */
+const PageTemplates = {
+  onboarding: () => `
+    <div style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:var(--sp-5);">
+      <div class="card" style="width:100%;max-width:400px;text-align:center;">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--bg-surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto var(--sp-5);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+          </svg>
+        </div>
+        <h1 style="margin-bottom:var(--sp-2);">Collage Marks</h1>
+        <p style="margin-bottom:var(--sp-6);">Track your academic grades. Enter your name to get started.</p>
+        <div class="input-group" style="margin-bottom:var(--sp-4);text-align:left;">
+          <label>Your name</label>
+          <input id="onboarding-name" class="input" type="text" placeholder="e.g. Omar" autocomplete="given-name" />
+        </div>
+        <button id="onboarding-submit" class="btn btn-primary w-full" style="padding:var(--sp-3) var(--sp-4);font-size:var(--text-base);">Get Started</button>
+      </div>
+    </div>`,
+
+  home: () => `
+    <div class="page-header">
+      <h1 id="home-welcome">Welcome back!</h1>
+      <p id="home-date" class="subtitle"></p>
+    </div>
+    <div class="grid-3" id="home-stats-grid" style="margin-bottom:var(--sp-5);"></div>
+    <div class="quote-card" style="margin-bottom:var(--sp-5);">
+      <div class="quote-text" id="home-quote"></div>
+    </div>
+    <div class="section-header">
+      <h3>Upcoming Exams <span id="exam-count-label" style="font-size:var(--text-sm);font-weight:400;color:var(--text-muted);margin-left:var(--sp-2);"></span></h3>
+    </div>
+    <div id="home-countdowns" style="margin-bottom:var(--sp-5);"></div>
+    <div class="section-header">
+      <h3>Academic Years</h3>
+      <button id="home-add-year-btn" class="btn btn-primary btn-sm">+ Add Year</button>
+    </div>
+    <div class="grid-auto" id="home-year-cards"></div>`,
+
+  year: () => `
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a href="#/home">Home</a><span class="sep">›</span>
+        <span id="year-breadcrumb-label">Year</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;">
+        <h1 id="year-title"></h1>
+        <div style="display:flex;gap:var(--sp-2);">
+          <button id="year-edit-btn" class="btn btn-ghost btn-sm">Edit</button>
+          <button id="year-delete-btn" class="btn btn-danger btn-sm">Delete</button>
+        </div>
+      </div>
+    </div>
+    <div class="grid-3" id="year-stats-grid" style="margin-bottom:var(--sp-5);"></div>
+    <div id="year-azone-card" class="card" style="margin-bottom:var(--sp-5);"></div>
+    <div class="section-header">
+      <h3>Terms</h3>
+      <span id="year-remaining-indicator" style="font-size:var(--text-xs);color:var(--text-muted);"></span>
+    </div>
+    <div class="grid-auto" id="year-terms-grid"></div>`,
+
+  term: () => `
+    <div class="page-header">
+      <div class="breadcrumb">
+        <a href="#/home">Home</a><span class="sep">›</span>
+        <a id="term-year-link" href="#">Year</a><span class="sep">›</span>
+        <span id="term-breadcrumb-label">Term</span>
+      </div>
+      <h1 id="term-title"></h1>
+    </div>
+    <div class="grid-3" id="term-stats-grid" style="margin-bottom:var(--sp-5);"></div>
+    <div class="section-header">
+      <h3>Modules <span id="term-module-count" style="font-size:var(--text-sm);color:var(--text-muted);font-weight:400;"></span></h3>
+      <button id="term-add-module-btn" class="btn btn-primary btn-sm">+ Add Module</button>
+    </div>
+    <div class="grid-auto" id="term-modules-grid" style="margin-bottom:var(--sp-5);"></div>
+    <div class="section-header">
+      <h3>Subjects <span id="term-subject-count" style="font-size:var(--text-sm);color:var(--text-muted);font-weight:400;"></span></h3>
+      <button id="term-add-subj-btn" class="btn btn-primary btn-sm">+ Add Subject</button>
+    </div>
+    <div class="grid-auto" id="term-subjects-grid"></div>`,
+
+  unit: () => `
+    <div id="unit-page">
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a href="#/home">Home</a><span class="sep">›</span>
+          <a id="unit-year-link" href="#">Year</a><span class="sep">›</span>
+          <a id="unit-term-link" href="#">Term</a><span class="sep">›</span>
+          <span id="unit-breadcrumb-label">Unit</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;">
+          <h1 id="unit-title"></h1>
+          <span id="unit-type-badge" style="font-size:var(--text-xs);font-weight:700;padding:3px 10px;border-radius:var(--radius-full);background:var(--bg-surface-2);color:var(--text-muted);"></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:var(--sp-4);margin-bottom:var(--sp-4);flex-wrap:wrap;">
+        <div class="card stat-card" style="flex:1;min-width:130px;">
+          <div class="stat-label">Progress</div>
+          <div id="unit-stat-progress" style="font-size:var(--text-xl);font-weight:800;color:var(--text-primary);margin-top:var(--sp-1);">--</div>
+        </div>
+        <div class="card stat-card" style="flex:1;min-width:130px;">
+          <div class="stat-label">Assessments</div>
+          <div id="unit-stat-count" style="font-size:var(--text-xl);font-weight:800;color:var(--text-primary);margin-top:var(--sp-1);">--</div>
+        </div>
+        <div class="card" style="flex:0;display:flex;align-items:center;justify-content:center;padding:var(--sp-4);">
+          <div id="unit-stat-grade" class="grade-badge grade-badge-lg grade-none">--</div>
+        </div>
+      </div>
+      <div id="unit-remaining-indicator" style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--sp-3);"></div>
+      <div id="unit-grade-zone-card" class="card" style="margin-bottom:var(--sp-5);display:none;"></div>
+      <div class="section-header">
+        <h3>Assessments</h3>
+        <div style="display:flex;gap:var(--sp-2);flex-wrap:wrap;">
+          <button id="unit-direct-toggle-btn" class="btn btn-ghost btn-sm">Direct Mark</button>
+          <button id="unit-edit-btn" class="btn btn-ghost btn-sm">Edit Unit</button>
+          <button id="unit-add-exam-btn" class="btn btn-primary btn-sm">+ Add</button>
+        </div>
+      </div>
+      <div id="unit-components-list"></div>
+    </div>`,
+
+  settings: () => `
+    <div class="page-header"><h1>Settings</h1></div>
+    <div class="card" style="margin-bottom:var(--sp-5);">
+      <h3 style="margin-bottom:var(--sp-4);">Profile</h3>
+      <div class="setting-row">
+        <div><div class="setting-row-label">Your Name</div></div>
+        <div style="display:flex;gap:var(--sp-2);">
+          <input id="settings-name-input" class="input" type="text" style="width:160px;" />
+          <button id="settings-name-save-btn" class="btn btn-primary btn-sm">Save</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-row-label">Dark Mode</div>
+          <div class="setting-row-sub">Toggle between dark and light theme</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="settings-dark-toggle" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:var(--sp-5);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-4);">
+        <h3>Grade Boundaries</h3>
+        <button id="settings-grades-save-btn" class="btn btn-primary btn-sm">Save</button>
+      </div>
+      <div id="grade-boundaries-list"></div>
+    </div>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="years">Years</button>
+        <button class="tab-btn" data-tab="modules">Modules</button>
+        <button class="tab-btn" data-tab="subjects">Subjects</button>
+        <button class="tab-btn" data-tab="quotes">Quotes</button>
+      </div>
+      <div class="tab-content active" id="tab-years">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-4);">
+          <h3>Academic Years</h3>
+          <button id="add-year-btn" class="btn btn-primary btn-sm">+ Add Year</button>
+        </div>
+        <div id="settings-years-list"></div>
+      </div>
+      <div class="tab-content" id="tab-modules">
+        <div style="display:flex;gap:var(--sp-3);margin-bottom:var(--sp-4);flex-wrap:wrap;align-items:center;">
+          <select id="mod-year-select" class="select" style="flex:1;min-width:120px;"></select>
+          <select id="mod-term-select" class="select" style="flex:1;min-width:120px;"></select>
+          <button id="add-module-btn" class="btn btn-primary btn-sm">+ Add Module</button>
+        </div>
+        <div id="settings-modules-list"></div>
+      </div>
+      <div class="tab-content" id="tab-subjects">
+        <div style="display:flex;gap:var(--sp-3);margin-bottom:var(--sp-4);flex-wrap:wrap;align-items:center;">
+          <select id="subj-year-select" class="select" style="flex:1;min-width:120px;"></select>
+          <select id="subj-term-select" class="select" style="flex:1;min-width:120px;"></select>
+          <button id="add-subject-btn" class="btn btn-primary btn-sm">+ Add Subject</button>
+        </div>
+        <div id="settings-subjects-list"></div>
+      </div>
+      <div class="tab-content" id="tab-quotes">
+        <p style="margin-bottom:var(--sp-4);font-size:var(--text-sm);">
+          <span id="built-in-quote-count">50</span> built-in motivational quotes.
+        </p>
+        <div style="display:flex;gap:var(--sp-2);margin-bottom:var(--sp-4);">
+          <input id="custom-quote-input" class="input" type="text" placeholder="Add a custom quote..." style="flex:1;" />
+          <button id="add-custom-quote-btn" class="btn btn-primary btn-sm">Add</button>
+        </div>
+        <div id="custom-quotes-list"></div>
+      </div>
+    </div>`,
+};
+
+/* ── PAGE CONTROLLERS ── */
+
+PageControllers.onboarding = {
+  async init() {
+    const input  = document.getElementById('onboarding-name');
+    const submit = document.getElementById('onboarding-submit');
+    if (!submit) return;
+    const handleSubmit = async () => {
+      const name = (input ? input.value : '').trim();
+      if (!name) { input.style.borderColor = 'var(--color-danger)'; input.placeholder = 'Please enter your name'; return; }
+      submit.disabled = true; submit.textContent = 'Setting up...';
+      await Store.setUserName(name);
+      document.getElementById('sidebar').classList.remove('hidden');
+      buildSidebar();
+      Router.navigate('#/home');
+    };
+    submit.addEventListener('click', handleSubmit);
+    if (input) {
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); input.style.borderColor = ''; });
+      input.focus();
+    }
+  }
+};
+
+PageControllers.home = {
+  async init() {
+    const user      = Store.getUser();
+    const academics = Store.getAcademics();
+    const settings  = Store.getSettings();
+    const bounds    = settings.gradeBoundaries;
+
+    const nameEl = document.getElementById('home-welcome');
+    if (nameEl) nameEl.textContent = `Welcome back, ${user.name}!`;
+    const dateEl = document.getElementById('home-date');
+    if (dateEl) dateEl.textContent = new Date().toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    const overallData = Calculator.overallMarks(academics);
+    const overall  = Calculator.overallAverage(academics);
+    const grade    = Calculator.getGrade(overall, bounds);
+    const statsGrid = document.getElementById('home-stats-grid');
+    if (statsGrid) {
+      statsGrid.innerHTML = `
+        <div class="card stat-card">
+          <div class="stat-label">Overall Progress</div>
+          <div class="stat-value" style="color:var(--color-primary)">${Calculator.fmtAbsolute(overallData.earned, overallData.total)}</div>
+          <div class="stat-sub">${academics.years.length} year${academics.years.length !== 1 ? 's' : ''} tracked</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Current Grade</div>
+          <div style="display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-2);">
+            <div class="grade-badge grade-badge-lg ${Calculator.gradeClass(grade)}">${grade}</div>
+            <div>
+              <div style="font-size:var(--text-xl);font-weight:700;">${grade === '--' ? 'No data' : grade === 'A' ? 'Excellent' : grade === 'B' ? 'Good' : grade === 'C' ? 'Average' : 'Needs Work'}</div>
+              <div style="font-size:var(--text-sm);color:var(--text-muted);">Overall standing</div>
+            </div>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Exams Tracked</div>
+          <div class="stat-value">${this._countExams(academics)}</div>
+          <div class="stat-sub">across all subjects</div>
+        </div>`;
+    }
+
+    const quoteEl = document.getElementById('home-quote');
+    if (quoteEl) quoteEl.textContent = Quotes.getRandom();
+    this._renderCountdowns(academics);
+    this._renderYearCards(academics, bounds);
+    const addYearBtn = document.getElementById('home-add-year-btn');
+    if (addYearBtn) addYearBtn.addEventListener('click', () => this._openAddYearModal());
+  },
+
+  _openAddYearModal() {
+    const academics = Store.getAcademics();
+    const yCount    = academics.years.length + 1;
+    const bounds    = Store.getSettings().gradeBoundaries;
+    Modal.open('Add Academic Year', `
+      <div class="input-group">
+        <label>Year Label</label>
+        <input id="modal-year-label" class="input" type="text" value="Year ${yCount}" placeholder="e.g. Year 1" />
+      </div>
+      <div class="input-group">
+        <label>Total Marks</label>
+        <input id="modal-year-total" class="input" type="number" inputmode="decimal" value="600" min="1" />
+      </div>
+      <div style="margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--border-light);">
+        <div style="font-size:var(--text-sm);font-weight:600;margin-bottom:var(--sp-2);color:var(--text-secondary);">
+          Grade Boundaries <span style="color:var(--text-muted);font-size:var(--text-xs);font-weight:400;">(optional — leave to use global defaults)</span>
+        </div>
+        <div style="display:flex;gap:var(--sp-3);">
+          <div class="input-group" style="flex:1;"><label>A (%)</label><input id="modal-year-bound-a" class="input" type="number" inputmode="decimal" value="${bounds.A}" min="1" max="100" /></div>
+          <div class="input-group" style="flex:1;"><label>B (%)</label><input id="modal-year-bound-b" class="input" type="number" inputmode="decimal" value="${bounds.B}" min="1" max="100" /></div>
+          <div class="input-group" style="flex:1;"><label>C (%)</label><input id="modal-year-bound-c" class="input" type="number" inputmode="decimal" value="${bounds.C}" min="1" max="100" /></div>
+        </div>
+      </div>
+      <p style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--sp-2);">2 terms will be created automatically.</p>
+    `, 'Add Year', async () => {
+      const label = document.getElementById('modal-year-label').value.trim();
+      const total = parseFloat(document.getElementById('modal-year-total').value);
+      if (!label) return;
+      Store.addYear(label, { totalMarks: total || 600 });
+      await Store.saveAcademics();
+      const aVal = parseFloat(document.getElementById('modal-year-bound-a').value);
+      const bVal = parseFloat(document.getElementById('modal-year-bound-b').value);
+      const cVal = parseFloat(document.getElementById('modal-year-bound-c').value);
+      if (!isNaN(aVal) && !isNaN(bVal) && !isNaN(cVal) && aVal > bVal && bVal > cVal) {
+        const settings = Store.getSettings();
+        settings.gradeBoundaries.A = aVal; settings.gradeBoundaries.B = bVal; settings.gradeBoundaries.C = cVal;
+        await Store.saveSettings();
+      }
+      Modal.close(); Toast.show('Year added'); Router.handle(location.hash);
+    });
+  },
+
+  _countExams(academics) {
+    let count = 0;
+    for (const y of academics.years || [])
+      for (const t of y.terms || [])
+        for (const u of [...(t.modules || []), ...(t.subjects || [])])
+          count += Object.values(u.components || {}).filter(c => c.mark !== null && c.mark !== undefined).length;
+    return count;
+  },
+
+  _renderCountdowns(academics) {
+    const upcoming  = Countdown.getUpcoming(6, academics);
+    const container = document.getElementById('home-countdowns');
+    const label     = document.getElementById('exam-count-label');
+    if (!container) return;
+    if (label) label.textContent = upcoming.length ? `${upcoming.length} upcoming` : '';
+    if (!upcoming.length) {
+      container.innerHTML = `<div style="padding:var(--sp-5);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-muted);font-size:var(--text-sm);">No upcoming exams. Add exam dates in subject pages.</div>`;
+      return;
+    }
+    container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--sp-3);">
+      ${upcoming.map(e => `
+        <div class="exam-countdown-card card-clickable" onclick="Router.navigate('#/year/${e.yearId}/term/${e.termId}/${e.type}/${e.unitId}')">
+          <div class="countdown-days">${e.days === 0 ? '!' : e.days}<span>${e.days === 0 ? 'TODAY' : e.days === 1 ? 'day' : 'days'}</span></div>
+          <div style="flex:1;">
+            <div style="font-weight:600;font-size:var(--text-sm);color:var(--text-primary);margin-bottom:2px;">${e.label}</div>
+            <div style="font-size:var(--text-xs);color:var(--text-muted);">${e.sublabel}</div>
+            <div class="${Countdown.chipClass(e.days)}" style="margin-top:var(--sp-1);">${Countdown.formatDays(e.days)}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  },
+
+  _renderYearCards(academics, bounds) {
+    const container = document.getElementById('home-year-cards');
+    if (!container) return;
+    if (!academics.years || !academics.years.length) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">🎓</div><h3>No academic years yet</h3><p>Add your first academic year to start tracking your grades.</p><button class="btn btn-primary" onclick="document.getElementById('home-add-year-btn').click()">Add Your First Year</button></div>`;
+      return;
+    }
+    container.innerHTML = academics.years.map(year => {
+      const avg   = Calculator.yearAverage(year);
+      const grade = Calculator.getGrade(avg, bounds);
+      const pct   = avg !== null ? avg.toFixed(1) : null;
+      const totalUnits = year.terms.reduce((s, t) => s + (t.modules || []).length + (t.subjects || []).length, 0);
+      return `
+        <div class="card card-clickable" onclick="Router.navigate('#/year/${year.id}')">
+          <div class="card-header">
+            <div><div class="card-title">${year.label}</div><div class="card-subtitle">${totalUnits} unit${totalUnits !== 1 ? 's' : ''}</div></div>
+            <div class="grade-badge ${Calculator.gradeClass(grade)}">${grade}</div>
+          </div>
+          <div style="font-size:var(--text-xl);font-weight:800;color:var(--text-primary);margin-bottom:var(--sp-3);">
+            ${Calculator.fmtAbsolute(Calculator.yearMarks(year).earned, year.totalMarks)}
+          </div>
+          <div class="progress-bar"><div class="progress-bar__fill ${Calculator.gradeClass(grade)}" style="width:${pct || 0}%"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:var(--sp-3);">
+            ${year.terms.map(t => {
+              const ta = Calculator.termAverage(t);
+              return `<div style="text-align:center;">
+                <div style="font-size:var(--text-xs);color:var(--text-muted);">${t.label}</div>
+                <div style="font-weight:700;font-size:var(--text-sm);color:var(--text-primary);">${ta !== null ? Calculator.fmtMarks(Calculator.termMarks(t).earned, Calculator.termMarks(t).total) : '--'}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }).join('');
+  },
+};
+
+PageControllers.year = {
+  _params: null,
+  async init(params) {
+    this._params = params;
+    const year   = Store.getYear(params.yearId);
+    if (!year) { document.getElementById('page-content').innerHTML = '<div class="empty-state"><h3>Year not found</h3></div>'; return; }
+    const bounds  = Store.getSettings().gradeBoundaries;
+    const avg     = Calculator.yearAverage(year);
+    const grade   = Calculator.getGrade(avg, bounds);
+
+    document.getElementById('year-breadcrumb-label').textContent = year.label;
+    document.getElementById('year-title').textContent = year.label;
+
+    const totalUnits = year.terms.reduce((s, t) => s + (t.modules || []).length + (t.subjects || []).length, 0);
+    document.getElementById('year-stats-grid').innerHTML = `
+      <div class="card stat-card">
+        <div class="stat-label">Year Progress</div>
+        <div class="stat-value" style="color:var(--color-primary)">${Calculator.fmtAbsolute(Calculator.yearMarks(year).earned, year.totalMarks)}</div>
+        <div class="stat-sub">Across all terms</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Grade</div>
+        <div style="display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-2);">
+          <div class="grade-badge grade-badge-lg ${Calculator.gradeClass(grade)}">${grade}</div>
+        </div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Structure</div>
+        <div class="stat-value">${totalUnits}</div>
+        <div class="stat-sub">Across ${year.terms.length} terms</div>
+      </div>`;
+
+    this._renderAZoneCard(year, bounds);
+
+    const termsGrid = document.getElementById('year-terms-grid');
+    termsGrid.innerHTML = year.terms.map(term => {
+      const ta = Calculator.termAverage(term);
+      const tg = Calculator.getGrade(ta, bounds);
+      const totalUnitsTerm = (term.modules || []).length + (term.subjects || []).length;
+      const termMarks = Calculator.termMarks(term);
+      return `
+        <div class="card card-clickable" onclick="Router.navigate('#/year/${year.id}/term/${term.id}')">
+          <div class="card-header">
+            <div><div class="card-title">${term.label}</div><div class="card-subtitle">${totalUnitsTerm} unit${totalUnitsTerm !== 1 ? 's' : ''}</div></div>
+            <div class="grade-badge ${Calculator.gradeClass(tg)}">${tg}</div>
+          </div>
+          <div style="font-size:var(--text-2xl);font-weight:800;color:var(--text-primary);margin-bottom:var(--sp-3);">
+            ${ta !== null ? Calculator.fmtAbsolute(termMarks.earned, termMarks.total) : '--'}
+          </div>
+          <div class="progress-bar"><div class="progress-bar__fill ${Calculator.gradeClass(tg)}" style="width:${ta || 0}%"></div></div>
+          <div style="margin-top:var(--sp-3);">
+            ${(term.modules || []).map(m => {
+              const ma = Calculator.unitAverage(m);
+              return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border-light);">
+                <span style="font-size:var(--text-sm);color:var(--text-secondary);">${m.name}</span>
+                <span style="font-size:var(--text-sm);font-weight:600;">${ma !== null ? Calculator.fmtMarks(Calculator.unitMarks(m).earned, m.totalMarks) : '--'}</span>
+              </div>`;
+            }).join('')}
+            ${(term.subjects || []).map(s => {
+              const sa = Calculator.unitAverage(s);
+              return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border-light);">
+                <span style="font-size:var(--text-sm);color:var(--text-secondary);">${s.name} (Subj)</span>
+                <span style="font-size:var(--text-sm);font-weight:600;">${sa !== null ? Calculator.fmtMarks(Calculator.unitMarks(s).earned, s.totalMarks) : '--'}</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('year-edit-btn').addEventListener('click', () => {
+      Modal.open('Edit Year', `
+        <div class="input-group"><label>Year Label</label><input id="modal-year-label" class="input" type="text" value="${year.label}" /></div>
+        <div class="input-group"><label>Year Total Marks</label><input id="modal-year-total" class="input" type="number" inputmode="decimal" value="${year.totalMarks}" min="1" /></div>
+      `, 'Save', async () => {
+        const label = document.getElementById('modal-year-label').value.trim();
+        const totalMarks = parseFloat(document.getElementById('modal-year-total').value);
+        if (!label) return;
+        year.label = label; year.totalMarks = totalMarks || year.totalMarks;
+        await Store.saveAcademics(); Toast.show('Year updated'); Router.handle(location.hash);
+      });
+    });
+
+    document.getElementById('year-delete-btn').addEventListener('click', () => {
+      Modal.open('Delete Year', `<p>Are you sure you want to delete <strong>${year.label}</strong>? This will also delete all terms, modules, and subjects within it.</p>`,
+        'Delete', async () => { Store.deleteYear(params.yearId); await Store.saveAcademics(); Toast.show('Year deleted', 'info'); Router.navigate('#/home'); }, 'btn-danger');
+    });
+
+    this._updateYearDisplay(year);
+  },
+
+  _renderAZoneCard(year, bounds) {
+    const card = document.getElementById('year-azone-card');
+    if (!card) return;
+    const yearTotal = year.totalMarks || 0;
+    if (!yearTotal) { card.style.display = 'none'; return; }
+
+    let earnedSoFar = 0, gradedTotal = 0;
+    const termRows = [];
+    for (const term of year.terms || []) {
+      let tEarned = 0, tGradedTotal = 0, tExplicitRemaining = 0;
+      for (const unit of [...(term.modules || []), ...(term.subjects || [])]) {
+        if (unit.directMark !== null && unit.directMark !== undefined) {
+          tEarned += unit.directMark; tGradedTotal += (unit.totalMarks || 0);
+        } else if (unit.subjects && unit.subjects.length > 0 && !unit.components) {
+          for (const sub of unit.subjects) for (const comp of Object.values(sub.components || {})) {
+            if (comp.mark !== null && comp.mark !== undefined) { tEarned += comp.mark; tGradedTotal += (comp.totalMarks || 0); }
+            else tExplicitRemaining += (comp.totalMarks || 0);
+          }
+        } else {
+          for (const comp of Object.values(unit.components || {})) {
+            if (comp.mark !== null && comp.mark !== undefined) { tEarned += comp.mark; tGradedTotal += (comp.totalMarks || 0); }
+            else tExplicitRemaining += (comp.totalMarks || 0);
+          }
+        }
+      }
+      earnedSoFar += tEarned; gradedTotal += tGradedTotal;
+      termRows.push({ label: term.label, earned: tEarned, explicitRemaining: tExplicitRemaining });
+    }
+
+    const globalRemainingMarks = Math.max(0, yearTotal - gradedTotal);
+    const maxPossible = earnedSoFar + globalRemainingMarks;
+    const aNeeded = (bounds.A / 100) * yearTotal, bNeeded = (bounds.B / 100) * yearTotal, cNeeded = (bounds.C / 100) * yearTotal;
+    const aAchievable = maxPossible >= aNeeded, bAchievable = maxPossible >= bNeeded, cAchievable = maxPossible >= cNeeded;
+    const earnedPct = yearTotal ? ((earnedSoFar / yearTotal) * 100).toFixed(1) : 0;
+    const maxPct = yearTotal ? ((maxPossible / yearTotal) * 100).toFixed(1) : 0;
+
+    let headline, detail, accentColor;
+    if (aAchievable) {
+      const safeDrop = Math.floor(maxPossible - aNeeded);
+      headline = `<span style="color:var(--color-success);font-weight:700;">A zone is achievable</span>`;
+      detail = `You can potentially lose <strong>${safeDrop} mark${safeDrop !== 1 ? 's' : ''}</strong> from upcoming/ungraded exams and still reach A (${bounds.A}%)`;
+      accentColor = 'var(--color-success)';
+    } else if (bAchievable) {
+      const safeDrop = Math.floor(maxPossible - bNeeded);
+      headline = `<span style="color:var(--color-danger);font-weight:600;">A zone is no longer possible</span>`;
+      detail = `Best reachable: <strong style="color:var(--color-primary);">B</strong> — you can drop <strong>${safeDrop} mark${safeDrop !== 1 ? 's' : ''}</strong> and stay in B (${bounds.B}%)`;
+      accentColor = 'var(--color-primary)';
+    } else if (cAchievable) {
+      const safeDrop = Math.floor(maxPossible - cNeeded);
+      headline = `<span style="color:var(--color-danger);font-weight:600;">A and B are no longer possible</span>`;
+      detail = `Best reachable: <strong style="color:var(--color-warning);">C</strong> — you can drop <strong>${safeDrop} mark${safeDrop !== 1 ? 's' : ''}</strong> and stay in C (${bounds.C}%)`;
+      accentColor = 'var(--color-warning)';
+    } else {
+      headline = `<span style="color:var(--color-danger);font-weight:600;">Grade F even at maximum possible score</span>`;
+      detail = `Max possible: ${maxPossible} / ${yearTotal} (${maxPct}%)`;
+      accentColor = 'var(--color-danger)';
+    }
+
+    const termBreakdown = termRows.map(row => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-2) 0;border-bottom:1px solid var(--border-light);">
+        <span style="font-size:var(--text-sm);color:var(--text-secondary);">${row.label}</span>
+        <span style="font-size:var(--text-sm);color:var(--text-secondary);">
+          <strong style="color:var(--text-primary);">${row.earned}</strong> earned
+          ${row.explicitRemaining > 0 ? ` · <span style="color:var(--text-muted);">${row.explicitRemaining} marks remaining</span>` : ` · <span style="color:var(--text-muted);">all added exams graded</span>`}
+        </span>
+      </div>`).join('');
+
+    card.innerHTML = `<div style="padding:var(--sp-4) var(--sp-5);">
+      <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3);">
+        <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Grade Zone</div>
+        <div style="width:8px;height:8px;border-radius:50%;background:${accentColor};"></div>
+      </div>
+      <div style="font-size:var(--text-sm);margin-bottom:var(--sp-1);">${headline}</div>
+      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--sp-4);">${detail}</div>
+      <div style="display:flex;gap:var(--sp-5);margin-bottom:var(--sp-4);font-size:var(--text-xs);color:var(--text-muted);flex-wrap:wrap;">
+        <span>Earned: <strong style="color:var(--text-primary);">${earnedSoFar}</strong> / ${yearTotal} (${earnedPct}%)</span>
+        <span>Remaining: <strong style="color:var(--text-primary);">${globalRemainingMarks}</strong> marks</span>
+        <span>Max possible: <strong style="color:var(--text-primary);">${maxPossible}</strong> (${maxPct}%)</span>
+      </div>
+      <div style="border-top:1px solid var(--border-light);padding-top:var(--sp-3);">
+        <div style="font-size:var(--text-xs);font-weight:600;color:var(--text-muted);margin-bottom:var(--sp-2);text-transform:uppercase;letter-spacing:.04em;">Per Term</div>
+        ${termBreakdown}
+      </div>
+    </div>`;
+  },
+
+  _updateYearDisplay(year) {
+    const indicator = document.getElementById('year-remaining-indicator');
+    if (!indicator) return;
+    let allocated = 0;
+    for (const term of year.terms || []) {
+      for (const m of term.modules  || []) allocated += (m.totalMarks || 0);
+      for (const s of term.subjects || []) allocated += (s.totalMarks || 0);
+    }
+    const yearTotal = year.totalMarks || 0;
+    const diff = yearTotal - allocated;
+    if (allocated === 0) { indicator.textContent = 'No units added yet'; indicator.style.color = 'var(--text-muted)'; }
+    else if (diff === 0) { indicator.textContent = `${allocated} / ${yearTotal} marks distributed ✓`; indicator.style.color = 'var(--color-success)'; }
+    else if (diff > 0)  { indicator.textContent = `${allocated} / ${yearTotal} marks distributed — ${diff} unaccounted`; indicator.style.color = 'var(--text-secondary)'; }
+    else                { indicator.textContent = `Warning: over by ${Math.abs(diff)}`; indicator.style.color = 'var(--color-danger)'; }
+  }
+};
+
+/* ── TERM PAGE CONTROLLER ── */
+PageControllers.term = {
+  _params: null,
+
+  async init(params) {
+    this._params = params;
+    const year = Store.getYear(params.yearId);
+    const term = Store.getTerm(params.yearId, params.termId);
+    if (!year || !term) return;
+
+    const bounds = Store.getSettings().gradeBoundaries;
+    const avg    = Calculator.termAverage(term);
+    const grade  = Calculator.getGrade(avg, bounds);
+
+    const yearLink = document.getElementById('term-year-link');
+    yearLink.textContent = year.label;
+    yearLink.href = `#/year/${year.id}`;
+    document.getElementById('term-breadcrumb-label').textContent = term.label;
+    document.getElementById('term-title').textContent = term.label;
+
+    const totalUnits = (term.modules || []).length + (term.subjects || []).length;
+    const termMarks = Calculator.termMarks(term);
+    document.getElementById('term-stats-grid').innerHTML = `
+      <div class="card stat-card">
+        <div class="stat-label">Term Progress</div>
+        <div class="stat-value" style="color:var(--color-primary)">${Calculator.fmtAbsolute(termMarks.earned, termMarks.total)}</div>
+        <div class="stat-sub">${(term.modules || []).length} module${(term.modules || []).length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Grade</div>
+        <div style="display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-2);">
+          <div class="grade-badge grade-badge-lg ${Calculator.gradeClass(grade)}">${grade}</div>
+        </div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Structure</div>
+        <div class="stat-value">${totalUnits}</div>
+        <div class="stat-sub">${(term.modules || []).length} modules, ${(term.subjects || []).length} subjects</div>
+      </div>
+    `;
+
+    document.getElementById('term-module-count').textContent = (term.modules || []).length;
+    document.getElementById('term-subject-count').textContent = (term.subjects || []).length;
+
+    this._renderModules(term, year, bounds);
+    this._renderSubjects(term, year, bounds);
+
+    document.getElementById('term-add-module-btn').addEventListener('click', () => {
+      Modal.open('Add Module', `
+        <div class="input-group">
+          <label>Module Name</label>
+          <input id="modal-module-name" class="input" type="text" placeholder="e.g. Computer Architecture" />
+        </div>
+        <div class="input-group">
+          <label>Total Marks</label>
+          <input id="modal-module-total" class="input" type="number" inputmode="decimal" value="100" min="1" />
+        </div>
+        <div class="input-group">
+          <label>Obtained Marks <span style="color:var(--text-muted);font-size:var(--text-xs);">(optional)</span></label>
+          <input id="modal-module-obtained" class="input" type="number" inputmode="decimal" step="0.5" min="0"
+                 placeholder="Leave blank to enter via components later" />
+        </div>
+      `, 'Add Module', async () => {
+        const name    = document.getElementById('modal-module-name').value.trim();
+        const total   = parseFloat(document.getElementById('modal-module-total').value);
+        const obtStr  = document.getElementById('modal-module-obtained').value;
+        if (!name) return;
+        const opts = { totalMarks: total || 100 };
+        if (obtStr !== '') opts.directMark = parseFloat(obtStr);
+        Store.addModule(params.yearId, params.termId, name, opts);
+        await Store.saveAcademics();
+        Modal.close();
+        Toast.show('Module added');
+        Router.handle(location.hash);
+      });
+    });
+
+    document.getElementById('term-add-subj-btn').addEventListener('click', () => {
+      Modal.open('Add Subject', `
+        <div class="input-group">
+          <label>Subject Name</label>
+          <input id="modal-subj-name" class="input" type="text" placeholder="e.g. Mathematics II" />
+        </div>
+        <div class="input-group">
+          <label>Total Marks</label>
+          <input id="modal-subj-total" class="input" type="number" inputmode="decimal" value="100" min="1" />
+        </div>
+        <div class="input-group">
+          <label>Obtained Marks <span style="color:var(--text-muted);font-size:var(--text-xs);">(optional)</span></label>
+          <input id="modal-subj-obtained" class="input" type="number" inputmode="decimal" step="0.5" min="0"
+                 placeholder="Leave blank to enter via components later" />
+        </div>
+      `, 'Add Subject', async () => {
+        const name   = document.getElementById('modal-subj-name').value.trim();
+        const total  = parseFloat(document.getElementById('modal-subj-total').value);
+        const obtStr = document.getElementById('modal-subj-obtained').value;
+        if (!name) return;
+        const opts = { totalMarks: total || 100 };
+        if (obtStr !== '') opts.directMark = parseFloat(obtStr);
+        Store.addSubject(params.yearId, params.termId, name, opts);
+        await Store.saveAcademics();
+        Modal.close();
+        Toast.show('Subject added');
+        Router.handle(location.hash);
+      });
+    });
+  },
+
+  _renderModules(term, year, bounds) {
+    const container = document.getElementById('term-modules-grid');
+    if (!container) return;
+    this._renderUnitList(container, term.modules || [], 'module', year, bounds);
+  },
+
+  _renderSubjects(term, year, bounds) {
+    const container = document.getElementById('term-subjects-grid');
+    if (!container) return;
+    this._renderUnitList(container, term.subjects || [], 'subject', year, bounds);
+  },
+
+  _renderUnitList(container, units, type, year, bounds) {
+    if (units.length === 0) {
+      container.innerHTML = `<div class="empty-compact">No ${type}s</div>`;
+      return;
+    }
+    container.innerHTML = units.map(unit => {
+      const avg   = Calculator.unitAverage(unit);
+      const grade = Calculator.getGrade(avg, bounds);
+      const marks = Calculator.unitMarks(unit);
+      return `
+        <div class="card card-clickable unit-card" onclick="Router.navigate('#/year/${year.id}/term/${this._params.termId}/${type}/${unit.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+            <div class="card-title" style="font-size:var(--text-sm);">${unit.name}</div>
+            <div style="display:flex;gap:var(--sp-2);align-items:center;">
+              <button class="modal-close-btn" style="color:var(--color-danger);padding:2px;"
+                      onclick="event.stopPropagation();PageControllers.term.deleteUnit('${type}','${unit.id}')" title="Delete ${type}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+              <div class="grade-badge grade-badge-sm ${Calculator.gradeClass(grade)}">${grade}</div>
+            </div>
+          </div>
+          <div style="font-size:var(--text-md);font-weight:700;color:var(--text-primary);margin-bottom:8px;">
+            ${Calculator.fmtAbsolute(marks.earned, unit.totalMarks)}
+          </div>
+          <div class="progress-bar progress-bar-sm">
+            <div class="progress-bar__fill ${Calculator.gradeClass(grade)}" style="width:${avg || 0}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+  },
+
+  async deleteUnit(type, id) {
+    if (!confirm('Are you certain you want to delete this? This action cannot be reversed.')) return;
+    if (type === 'module') {
+      Store.deleteModule(this._params.yearId, this._params.termId, id);
+    } else {
+      Store.deleteSubject(this._params.yearId, this._params.termId, id);
+    }
+    await Store.saveAcademics();
+    Toast.show('Deleted successfully');
+    const term   = Store.getTerm(this._params.yearId, this._params.termId);
+    const year   = Store.getYear(this._params.yearId);
+    const bounds = Store.getSettings().gradeBoundaries;
+    this._renderModules(term, year, bounds);
+    this._renderSubjects(term, year, bounds);
+    document.getElementById('term-module-count').textContent  = (term.modules  || []).length;
+    document.getElementById('term-subject-count').textContent = (term.subjects || []).length;
+    const totalUnits = (term.modules || []).length + (term.subjects || []).length;
+    const termMarks  = Calculator.termMarks(term);
+    const avg        = Calculator.termAverage(term);
+    const grade      = Calculator.getGrade(avg, bounds);
+    document.getElementById('term-stats-grid').innerHTML = `
+      <div class="card stat-card">
+        <div class="stat-label">Term Progress</div>
+        <div class="stat-value" style="color:var(--color-primary)">${Calculator.fmtAbsolute(termMarks.earned, termMarks.total)}</div>
+        <div class="stat-sub">${(term.modules || []).length} module${(term.modules || []).length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Grade</div>
+        <div style="display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-2);">
+          <div class="grade-badge grade-badge-lg ${Calculator.gradeClass(grade)}">${grade}</div>
+        </div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Structure</div>
+        <div class="stat-value">${totalUnits}</div>
+        <div class="stat-sub">${(term.modules || []).length} modules, ${(term.subjects || []).length} subjects</div>
+      </div>
+    `;
+  }
+};
+
+/* ── UNIT PAGE CONTROLLER ── */
+PageControllers.unit = {
+  _params: null,
+  _currentUnit: null,
+
+  async init(params) {
+    this._params = params;
+    const year = Store.getYear(params.yearId);
+    if (!year) return;
+    const term = Store.getTerm(params.yearId, params.termId);
+    if (!term) return;
+
+    let unit = null;
+    const type = params.type;
+
+    if (params.moduleId) {
+      unit = Store.getNestedSubject(params.yearId, params.termId, params.moduleId, params.id);
+    } else if (type === 'module') {
+      unit = (term.modules || []).find(m => m.id === params.id);
+      if (unit && unit.subjects && unit.subjects.length > 0 && !unit.components) {
+        this._renderOldSchemaModuleView(unit, year, term);
+        return;
+      }
+    } else {
+      unit = (term.subjects || []).find(s => s.id === params.id);
+    }
+
+    if (!unit) return;
+    this._currentUnit = unit;
+
+    const bounds = Store.getSettings().gradeBoundaries;
+    const marks = Calculator.unitMarks(unit);
+    const avg   = Calculator.unitAverage(unit);
+    const grade = Calculator.getGrade(avg, bounds);
+
+    const yearLink = document.getElementById('unit-year-link');
+    yearLink.textContent = year.label;
+    yearLink.href = `#/year/${year.id}`;
+    const termLink = document.getElementById('unit-term-link');
+    termLink.textContent = term.label;
+    termLink.href = `#/year/${year.id}/term/${term.id}`;
+
+    if (params.moduleId) {
+      const parentModule = Store.getModule(params.yearId, params.termId, params.moduleId);
+      if (parentModule) {
+        const sep = termLink.nextElementSibling;
+        if (sep) {
+          sep.insertAdjacentHTML('afterend',
+            `<a href="#/year/${year.id}/term/${term.id}/module/${params.moduleId}">${parentModule.name}</a><span class="sep">›</span>`
+          );
+        }
+      }
+    }
+
+    document.getElementById('unit-breadcrumb-label').textContent = unit.name;
+    document.getElementById('unit-title').textContent = unit.name;
+    document.getElementById('unit-type-badge').textContent = params.moduleId ? 'SUBJECT' : type.toUpperCase();
+
+    document.getElementById('unit-stat-progress').textContent = Calculator.fmtAbsolute(marks.earned, unit.totalMarks);
+    const compCount = Object.keys(unit.components || {}).length;
+    document.getElementById('unit-stat-count').textContent = `${compCount} assessment${compCount !== 1 ? 's' : ''}`;
+    document.getElementById('unit-stat-grade').textContent = grade;
+    document.getElementById('unit-stat-grade').className = `grade-badge grade-badge-lg ${Calculator.gradeClass(grade)}`;
+
+    this._updateRemainingIndicator(unit);
+    this._renderGradeZone(Calculator.gradeZone(unit, bounds), bounds, unit);
+    this._initDirectMarkToggle(unit);
+    this._renderComponents(unit);
+
+    document.getElementById('unit-edit-btn').addEventListener('click', () => {
+      const editType = params.moduleId ? 'subject' : type;
+      Modal.open(`Edit ${editType.charAt(0).toUpperCase() + editType.slice(1)}`, `
+        <div class="input-group">
+          <label>Name</label>
+          <input id="modal-unit-name" class="input" type="text" value="${unit.name}" />
+        </div>
+        <div class="input-group">
+          <label>Total Marks</label>
+          <input id="modal-unit-total" class="input" type="number" inputmode="decimal" value="${unit.totalMarks}" min="1" />
+        </div>
+        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--sp-2);">
+          Updating Total Marks will rescale the pre-built assessment components (20/30/40/10).
+        </p>
+        <div style="margin-top:var(--sp-4);padding-top:var(--sp-4);border-top:1px solid var(--border);">
+          <button class="btn btn-danger" style="width:100%" onclick="PageControllers.unit.deleteCurrentUnit()">Delete ${editType}</button>
+        </div>
+      `, 'Save', async () => {
+        const name = document.getElementById('modal-unit-name').value.trim();
+        const total = parseFloat(document.getElementById('modal-unit-total').value);
+        if (!name || isNaN(total)) return;
+        unit.name = name;
+        unit.totalMarks = total;
+        Store.recalculateDefaultComponents(unit);
+        await Store.saveAcademics();
+        Modal.close();
+        Toast.show(`${editType} updated`);
+        Router.handle(location.hash);
+      });
+    });
+
+    document.getElementById('unit-add-exam-btn').addEventListener('click', () => {
+      Modal.open('Add Custom Assessment', `
+        <div class="input-group">
+          <label>Label</label>
+          <input id="modal-exam-label" class="input" type="text" placeholder="e.g. Midterm 1" />
+        </div>
+        <div class="input-group">
+          <label>Total Marks</label>
+          <input id="modal-exam-total" class="input" type="number" inputmode="decimal" value="10" />
+        </div>
+        <div class="input-group">
+          <label>Obtained Mark <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+          <input id="modal-exam-mark" class="input" type="number" inputmode="decimal" step="0.5" placeholder="Leave blank if not taken yet" />
+        </div>
+        <div class="input-group">
+          <label>Exam Date</label>
+          <input id="modal-exam-date" class="input" type="date" />
+        </div>
+      `, 'Add Assessment', async () => {
+        const label   = document.getElementById('modal-exam-label').value.trim();
+        const total   = parseFloat(document.getElementById('modal-exam-total').value);
+        const markStr = document.getElementById('modal-exam-mark').value;
+        const date    = document.getElementById('modal-exam-date').value;
+        if (!label || isNaN(total)) return;
+        const parsedMark = markStr === '' ? null : parseFloat(markStr);
+        if (parsedMark !== null && parsedMark > total) {
+          const markInput = document.getElementById('modal-exam-mark');
+          if (markInput) { markInput.style.borderColor = 'var(--color-danger)'; markInput.focus(); }
+          Toast.show(`Mark cannot exceed total (${total})`, 'error');
+          return;
+        }
+        if (!unit.components) unit.components = {};
+        const key = 'custom_' + Date.now();
+        unit.components[key] = { label, mark: parsedMark, totalMarks: total, examDate: date || null };
+        await Store.saveAcademics();
+        Modal.close();
+        Toast.show('Assessment added');
+        Router.handle(location.hash);
+      });
+    });
+  },
+
+  _renderOldSchemaModuleView(module, year, term) {
+    const bounds = Store.getSettings().gradeBoundaries;
+    const marks = Calculator.unitMarks(module);
+    const avg = Calculator.unitAverage(module);
+    const grade = Calculator.getGrade(avg, bounds);
+    document.getElementById('unit-year-link').textContent = year.label;
+    document.getElementById('unit-year-link').href = `#/year/${year.id}`;
+    document.getElementById('unit-term-link').textContent = term.label;
+    document.getElementById('unit-term-link').href = `#/year/${year.id}/term/${term.id}`;
+    document.getElementById('unit-breadcrumb-label').textContent = module.name;
+    document.getElementById('unit-title').textContent = module.name;
+    document.getElementById('unit-type-badge').textContent = 'MODULE';
+    document.getElementById('unit-stat-progress').textContent = Calculator.fmtAbsolute(marks.earned, module.totalMarks);
+    const subjCount = (module.subjects || []).length;
+    document.getElementById('unit-stat-count').textContent = `${subjCount} subject${subjCount !== 1 ? 's' : ''}`;
+    document.getElementById('unit-stat-grade').textContent = grade;
+    document.getElementById('unit-stat-grade').className = `grade-badge grade-badge-lg ${Calculator.gradeClass(grade)}`;
+    const indicator = document.getElementById('unit-remaining-indicator');
+    if (indicator) {
+      const subjTotal = (module.subjects || []).reduce((s, subj) => s + (subj.totalMarks || 0), 0);
+      const diff = (module.totalMarks || 0) - subjTotal;
+      if (diff === 0) { indicator.textContent = 'Subject totals match ✓'; indicator.style.color = 'var(--color-success)'; }
+      else { indicator.textContent = `${subjTotal} / ${module.totalMarks} marks in subjects`; indicator.style.color = 'var(--text-secondary)'; }
+    }
+    const header = document.querySelector('#unit-page .section-header h3');
+    if (header) header.textContent = 'Subjects';
+    const list = document.getElementById('unit-components-list');
+    if (!list) return;
+    if (!module.subjects || module.subjects.length === 0) {
+      list.innerHTML = `<div class="empty-compact" style="padding:var(--sp-5);">No subjects in this module.</div>`;
+    } else {
+      list.innerHTML = module.subjects.map(subj => {
+        const sm = Calculator.unitMarks(subj);
+        const sa = Calculator.unitAverage(subj);
+        const sg = Calculator.getGrade(sa, bounds);
+        const pct = sa !== null ? sa.toFixed(1) + '%' : '--';
+        return `
+          <div class="component-row card-clickable"
+               onclick="Router.navigate('#/year/${year.id}/term/${term.id}/module/${module.id}/subject/${subj.id}')">
+            <div class="component-info">
+               <div class="component-label">${subj.name}</div>
+               <div class="component-meta"><span class="grade-badge grade-badge-sm ${Calculator.gradeClass(sg)}">${sg}</span></div>
+            </div>
+            <div class="component-score">
+              <div class="score-value">${sm.earned} / ${subj.totalMarks || sm.total}</div>
+              <div class="score-pct">${pct}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+    const addExamBtn = document.getElementById('unit-add-exam-btn');
+    if (addExamBtn) addExamBtn.style.display = 'none';
+    document.getElementById('unit-edit-btn').addEventListener('click', () => {
+      Modal.open('Edit Module', `
+        <div class="input-group">
+          <label>Name</label>
+          <input id="modal-unit-name" class="input" type="text" value="${module.name}" />
+        </div>
+        <div class="input-group">
+          <label>Total Marks</label>
+          <input id="modal-unit-total" class="input" type="number" inputmode="decimal" value="${module.totalMarks || 0}" min="1" />
+        </div>
+        <div style="margin-top:var(--sp-4);padding-top:var(--sp-4);border-top:1px solid var(--border);">
+          <button class="btn btn-danger" style="width:100%" onclick="PageControllers.unit.deleteCurrentUnit()">Delete Module</button>
+        </div>
+      `, 'Save', async () => {
+        const name = document.getElementById('modal-unit-name').value.trim();
+        const total = parseFloat(document.getElementById('modal-unit-total').value);
+        if (!name || isNaN(total)) return;
+        module.name = name; module.totalMarks = total;
+        await Store.saveAcademics(); Modal.close(); Toast.show('Module updated'); Router.handle(location.hash);
+      });
+    });
+  },
+
+  _renderComponents(unit) {
+    const list = document.getElementById('unit-components-list');
+    if (!list) return;
+    const components = unit.components || {};
+    if (Object.keys(components).length === 0) {
+      list.innerHTML = `<div class="empty-compact" style="padding:var(--sp-5);">No components added.</div>`;
+      return;
+    }
+    list.innerHTML = Object.entries(components).map(([key, comp]) => {
+      const pct = comp.mark !== null ? ((comp.mark / comp.totalMarks) * 100).toFixed(1) + '%' : '--';
+      const displayLabel = comp.label || key;
+      return `
+        <div class="component-row card-clickable" onclick="PageControllers.unit.editComponent('${key}')">
+          <div class="component-info">
+             <div class="component-label">${displayLabel}</div>
+             <div class="component-meta">
+               ${comp.isActivity ? '<span class="badge badge-accent">ACTIVITY</span>' : (comp.examDate ? `📅 ${comp.examDate}` : 'No date set')}
+             </div>
+          </div>
+          <div class="component-score">
+            <div class="score-value">${comp.mark !== null ? comp.mark : '--'} / ${comp.totalMarks}</div>
+            <div class="score-pct">${pct}</div>
+          </div>
+        </div>`;
+    }).join('');
+  },
+
+  editComponent(key) {
+    const { yearId, termId, type, id, moduleId } = this._params;
+    let unit;
+    if (moduleId) {
+      unit = Store.getNestedSubject(yearId, termId, moduleId, id);
+    } else {
+      const term = Store.getTerm(yearId, termId);
+      if (!term) return;
+      unit = type === 'module' ? (term.modules || []).find(m => m.id === id) : (term.subjects || []).find(s => s.id === id);
+    }
+    if (!unit || !unit.components) return;
+    const comp = unit.components[key];
+    if (!comp) return;
+    const isCustom = key.startsWith('custom_');
+    const displayLabel = comp.label || key;
+    Modal.open(`Edit: ${displayLabel}`, `
+      <div class="input-group">
+        <label>Label</label>
+        <input id="modal-comp-label" class="input" type="text" value="${comp.label || ''}" />
+      </div>
+      <div class="input-group">
+        <label>Earned Mark</label>
+        <input id="modal-comp-mark" class="input" type="number" inputmode="decimal" step="0.5" value="${comp.mark !== null && comp.mark !== undefined ? comp.mark : ''}" placeholder="Not entered" />
+      </div>
+      <div class="input-group">
+        <label>Total Marks Available</label>
+        <input id="modal-comp-total" class="input" type="number" inputmode="decimal" value="${comp.totalMarks}" />
+      </div>
+      ${!comp.isActivity ? `
+      <div class="input-group">
+        <label>Exam Date</label>
+        <input id="modal-comp-date" class="input" type="date" value="${comp.examDate || ''}" />
+      </div>` : ''}
+      ${isCustom ? `
+      <div style="margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--border);">
+        <button class="btn btn-danger btn-sm" onclick="PageControllers.unit._deleteComponent('${key}')">Delete Assessment</button>
+      </div>` : ''}
+    `, 'Save', async () => {
+      const label = document.getElementById('modal-comp-label').value.trim();
+      const markStr = document.getElementById('modal-comp-mark').value;
+      const total = parseFloat(document.getElementById('modal-comp-total').value);
+      if (!label || isNaN(total)) return;
+      const parsedMark = markStr === '' ? null : parseFloat(markStr);
+      if (parsedMark !== null && parsedMark > total) {
+        const markInput = document.getElementById('modal-comp-mark');
+        if (markInput) { markInput.style.borderColor = 'var(--color-danger)'; markInput.focus(); }
+        Toast.show(`Mark cannot exceed total (${total})`, 'error');
+        return;
+      }
+      comp.label = label; comp.mark = parsedMark; comp.totalMarks = total;
+      if (!comp.isActivity) {
+        const dateEl = document.getElementById('modal-comp-date');
+        if (dateEl) comp.examDate = dateEl.value || null;
+      }
+      await Store.saveAcademics(); Modal.close(); Toast.show('Saved'); Router.handle(location.hash);
+    });
+  },
+
+  async _deleteComponent(key) {
+    const { yearId, termId, type, id, moduleId } = this._params;
+    let unit;
+    if (moduleId) {
+      unit = Store.getNestedSubject(yearId, termId, moduleId, id);
+    } else {
+      const term = Store.getTerm(yearId, termId);
+      if (!term) return;
+      unit = type === 'module' ? (term.modules || []).find(m => m.id === id) : (term.subjects || []).find(s => s.id === id);
+    }
+    if (!unit || !unit.components) return;
+    delete unit.components[key];
+    await Store.saveAcademics(); Modal.close(); Toast.show('Assessment deleted'); Router.handle(location.hash);
+  },
+
+  async deleteCurrentUnit() {
+    if (!confirm('Are you certain you want to delete this? This action cannot be reversed.')) return;
+    const { yearId, termId, type, id, moduleId } = this._params;
+    if (moduleId) {
+      const mod = Store.getModule(yearId, termId, moduleId);
+      if (mod && mod.subjects) mod.subjects = mod.subjects.filter(s => s.id !== id);
+    } else {
+      if (type === 'module') Store.deleteModule(yearId, termId, id);
+      else Store.deleteSubject(yearId, termId, id);
+    }
+    await Store.saveAcademics(); Modal.close(); Toast.show('Deleted successfully');
+    if (moduleId) Router.navigate('#/year/' + yearId + '/term/' + termId + '/module/' + moduleId);
+    else Router.navigate('#/year/' + yearId + '/term/' + termId);
+  },
+
+  _initDirectMarkToggle(unit) {
+    const btn = document.getElementById('unit-direct-toggle-btn');
+    if (!btn) return;
+    const isDirectMode = unit.directMark !== null && unit.directMark !== undefined;
+    if (isDirectMode) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      if (unit.directMark !== null && unit.directMark !== undefined) {
+        Modal.open('Edit Direct Mark', `
+          <div class="input-group">
+            <label>Marks Earned (out of ${unit.totalMarks})</label>
+            <input id="modal-direct-mark" class="input" type="number" inputmode="decimal" step="0.5" min="0" max="${unit.totalMarks}" value="${unit.directMark}" />
+          </div>
+          <div style="margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--border);">
+            <button class="btn btn-danger btn-sm" onclick="
+              delete PageControllers.unit._currentUnit.directMark;
+              Store.recalculateDefaultComponents(PageControllers.unit._currentUnit);
+              Store.saveAcademics().then(() => { Modal.close(); Router.handle(location.hash); });
+            ">Clear &amp; Switch to Components</button>
+          </div>
+        `, 'Save', async () => {
+          const val = parseFloat(document.getElementById('modal-direct-mark').value);
+          if (isNaN(val) || val < 0) return;
+          if (val > unit.totalMarks) {
+            const inp = document.getElementById('modal-direct-mark');
+            if (inp) { inp.style.borderColor = 'var(--color-danger)'; inp.focus(); }
+            Toast.show(`Mark cannot exceed total (${unit.totalMarks})`, 'error');
+            return;
+          }
+          unit.directMark = val; await Store.saveAcademics(); Modal.close(); Router.handle(location.hash);
+        });
+      } else {
+        Modal.open('Enter Direct Mark', `
+          <p style="color:var(--text-muted);font-size:var(--text-sm);">
+            Enter the total marks you earned for this unit. Individual assessment breakdown will be hidden.
+          </p>
+          <div class="input-group">
+            <label>Marks Earned (out of ${unit.totalMarks})</label>
+            <input id="modal-direct-mark" class="input" type="number" inputmode="decimal" step="0.5" min="0" max="${unit.totalMarks}" placeholder="e.g. 78" />
+          </div>
+        `, 'Save', async () => {
+          const val = parseFloat(document.getElementById('modal-direct-mark').value);
+          if (isNaN(val) || val < 0) return;
+          unit.directMark = Math.min(val, unit.totalMarks);
+          await Store.saveAcademics(); Modal.close(); Router.handle(location.hash);
+        });
+      }
+    });
+  },
+
+  _renderGradeZone(gz, bounds, unit) {
+    const card = document.getElementById('unit-grade-zone-card');
+    if (!card || !gz) { if (card) card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    if (gz.mode === 'direct') {
+      const marginLine = gz.safetyMargin !== null
+        ? `<span style="color:var(--text-muted);font-size:var(--text-sm);">${gz.safetyMargin.toFixed(1)}% above ${gz.currentGrade} threshold</span>`
+        : '';
+      card.innerHTML = `
+        <div style="padding:var(--sp-4) var(--sp-5);">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;">
+            <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Direct Mark</div>
+            <div class="grade-badge grade-badge-sm ${Calculator.gradeClass(gz.currentGrade)}">${gz.currentGrade}</div>
+            <div style="font-weight:600;">${gz.scoredPct.toFixed(1)}% — ${unit.directMark} / ${unit.totalMarks}</div>
+            ${marginLine}
+          </div>
+        </div>`;
+      return;
+    }
+    const topGrade = gz.bestAchievableGrade;
+    let headline, detail;
+    if (gz.aAchievable) {
+      headline = `<span style="color:var(--color-success);font-weight:700;">A is achievable</span>`;
+      detail   = `You can drop <strong>${gz.safeDropMarks} mark${gz.safeDropMarks !== 1 ? 's' : ''}</strong> in remaining assessments and still reach A (${bounds.A}%)`;
+    } else if (gz.bAchievable) {
+      headline = `<span style="color:var(--color-danger);font-weight:600;">A is no longer possible</span>`;
+      detail   = `Best reachable: <strong style="color:var(--color-primary);">B</strong> — you can drop <strong>${gz.safeDropMarks} mark${gz.safeDropMarks !== 1 ? 's' : ''}</strong> and stay in B (${bounds.B}%)`;
+    } else if (gz.cAchievable) {
+      headline = `<span style="color:var(--color-danger);font-weight:600;">A and B are no longer possible</span>`;
+      detail   = `Best reachable: <strong style="color:var(--color-warning);">C</strong> — you can drop <strong>${gz.safeDropMarks} mark${gz.safeDropMarks !== 1 ? 's' : ''}</strong> and stay in C (${bounds.C}%)`;
+    } else {
+      headline = `<span style="color:var(--color-danger);font-weight:600;">Grade F even with perfect remaining score</span>`;
+      detail   = `Maximum possible: ${gz.maxPct.toFixed(1)}%`;
+    }
+    const earnedPct = (gz.earnedSoFar != null && unit.totalMarks)
+      ? ((gz.earnedSoFar / unit.totalMarks) * 100).toFixed(1) + '%' : '--';
+    card.innerHTML = `
+      <div style="padding:var(--sp-4) var(--sp-5);">
+        <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-2);">
+          <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Grade Zone</div>
+          <div class="grade-badge grade-badge-sm ${Calculator.gradeClass(topGrade)}">${topGrade} max</div>
+        </div>
+        <div style="font-size:var(--text-sm);margin-bottom:var(--sp-1);">${headline}</div>
+        <div style="font-size:var(--text-sm);color:var(--text-secondary);">${detail}</div>
+        <div style="display:flex;gap:var(--sp-5);margin-top:var(--sp-3);font-size:var(--text-xs);color:var(--text-muted);flex-wrap:wrap;">
+          <span>Earned: ${gz.earnedSoFar} / ${unit.totalMarks} (${earnedPct})</span>
+          <span>Remaining: ${gz.remainingMarks} marks</span>
+          <span>Max possible: ${gz.maxPossible} (${gz.maxPct.toFixed(1)}%)</span>
+        </div>
+      </div>`;
+  },
+
+  _updateRemainingIndicator(unit) {
+    const indicator = document.getElementById('unit-remaining-indicator');
+    if (!indicator) return;
+    const totalAllocated = Object.values(unit.components || {}).reduce((s, c) => s + (c.totalMarks || 0), 0);
+    const remaining = (unit.totalMarks || 0) - totalAllocated;
+    if (remaining === 0) { indicator.textContent = 'All marks allocated ✓'; indicator.style.color = 'var(--color-success)'; }
+    else if (remaining > 0) { indicator.textContent = `${remaining} marks left for more exams`; indicator.style.color = 'var(--text-secondary)'; }
+    else { indicator.textContent = `${Math.abs(remaining)} marks over-allocated!`; indicator.style.color = 'var(--color-danger)'; }
+  }
+};
+
+/* ── SETTINGS PAGE CONTROLLER ── */
+PageControllers.settings = {
+  async init() {
+    const user     = Store.getUser();
+    const settings = Store.getSettings();
+    const bounds   = settings.gradeBoundaries;
+
+    const nameInput   = document.getElementById('settings-name-input');
+    const nameSaveBtn = document.getElementById('settings-name-save-btn');
+    if (nameInput) nameInput.value = user.name || '';
+    if (nameSaveBtn) {
+      nameSaveBtn.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
+        if (!name) return;
+        await Store.setUserName(name);
+        Toast.show('Name updated');
+      });
+    }
+
+    const darkToggle = document.getElementById('settings-dark-toggle');
+    if (darkToggle) {
+      darkToggle.checked = settings.theme === 'dark';
+      darkToggle.addEventListener('change', async () => {
+        const next = await Theme.toggle();
+        Toast.show(`Switched to ${next} mode`, 'info');
+      });
+    }
+
+    this._renderGradeBoundaries(bounds);
+    document.getElementById('settings-grades-save-btn').addEventListener('click', async () => {
+      const aVal = parseFloat(document.getElementById('boundary-A').value);
+      const bVal = parseFloat(document.getElementById('boundary-B').value);
+      const cVal = parseFloat(document.getElementById('boundary-C').value);
+      if (isNaN(aVal) || isNaN(bVal) || isNaN(cVal)) { Toast.show('Please enter valid numbers', 'error'); return; }
+      if (aVal <= bVal || bVal <= cVal) { Toast.show('Grades must be in descending order (A > B > C)', 'error'); return; }
+      settings.gradeBoundaries.A = aVal;
+      settings.gradeBoundaries.B = bVal;
+      settings.gradeBoundaries.C = cVal;
+      await Store.saveSettings();
+      Toast.show('Grade boundaries saved');
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        const tabEl = document.getElementById(`tab-${btn.dataset.tab}`);
+        if (tabEl) tabEl.classList.add('active');
+      });
+    });
+
+    this._renderYearsList();
+
+    document.getElementById('add-year-btn').addEventListener('click', () => {
+      const yCount = Store.getAcademics().years.length + 1;
+      Modal.open('Add Academic Year', `
+        <div class="input-group">
+          <label>Year Label</label>
+          <input id="modal-year-label" class="input" type="text" value="Year ${yCount}" placeholder="e.g. Year 1" />
+        </div>
+        <div class="input-group">
+          <label>Total Marks</label>
+          <input id="modal-year-total" class="input" type="number" inputmode="decimal" value="600" min="1" />
+        </div>
+        <p style="font-size:var(--text-sm);color:var(--text-muted);margin-top:var(--sp-2);">2 terms will be created automatically.</p>
+      `, 'Add Year', async () => {
+        const label = document.getElementById('modal-year-label').value.trim();
+        const total = parseFloat(document.getElementById('modal-year-total').value);
+        if (!label) return;
+        Store.addYear(label, { totalMarks: total || 600 });
+        await Store.saveAcademics();
+        Modal.close();
+        Toast.show('Year added');
+        this._renderYearsList();
+        this._populateYearSelects();
+      });
+    });
+
+    this._populateYearSelects();
+    const modYearSel = document.getElementById('mod-year-select');
+    const modTermSel = document.getElementById('mod-term-select');
+    if (modYearSel) modYearSel.addEventListener('change', () => { this._populateTermSelect(modYearSel.value, 'mod-term-select'); this._renderModulesList(); });
+    if (modTermSel) modTermSel.addEventListener('change', () => this._renderModulesList());
+
+    document.getElementById('add-module-btn').addEventListener('click', () => {
+      const yearId = modYearSel ? modYearSel.value : null;
+      const termId = modTermSel ? modTermSel.value : null;
+      if (!yearId || !termId) { Toast.show('Select a year and term first', 'error'); return; }
+      Modal.open('Add Module', `
+        <div class="input-group">
+          <label>Module Name</label>
+          <input id="modal-module-name" class="input" type="text" placeholder="e.g. Data Structures" />
+        </div>
+        <div class="input-group">
+          <label>Total Marks</label>
+          <input id="modal-module-total" class="input" type="number" inputmode="decimal" value="100" min="1" />
+        </div>
+        <div class="input-group">
+          <label>Obtained Marks <span style="color:var(--text-muted);font-size:var(--text-xs);">(optional)</span></label>
+          <input id="modal-module-obtained" class="input" type="number" inputmode="decimal" step="0.5" min="0"
+                 placeholder="Leave blank to enter via components later" />
+        </div>
+      `, 'Add Module', async () => {
+        const name   = document.getElementById('modal-module-name').value.trim();
+        const total  = parseFloat(document.getElementById('modal-module-total').value);
+        const obtStr = document.getElementById('modal-module-obtained').value;
+        if (!name) return;
+        const opts = { totalMarks: total || 100 };
+        if (obtStr !== '') opts.directMark = parseFloat(obtStr);
+        Store.addModule(yearId, termId, name, opts);
+        await Store.saveAcademics(); Modal.close(); Toast.show('Module added'); this._renderModulesList();
+      });
+    });
+
+    const subjYearSel = document.getElementById('subj-year-select');
+    const subjTermSel = document.getElementById('subj-term-select');
+    if (subjYearSel) subjYearSel.addEventListener('change', () => { this._populateTermSelect(subjYearSel.value, 'subj-term-select'); this._renderSubjectsList(); });
+    if (subjTermSel) subjTermSel.addEventListener('change', () => this._renderSubjectsList());
+
+    document.getElementById('add-subject-btn').addEventListener('click', () => {
+      const yearId = subjYearSel ? subjYearSel.value : null;
+      const termId = subjTermSel ? subjTermSel.value : null;
+      if (!yearId || !termId) { Toast.show('Select year and term first', 'error'); return; }
+      Modal.open('Add Subject', `
+        <div class="input-group">
+          <label>Subject Name</label>
+          <input id="modal-subj-name" class="input" type="text" placeholder="e.g. Mathematics" />
+        </div>
+        <div class="input-group">
+          <label>Total Marks</label>
+          <input id="modal-subj-total" class="input" type="number" inputmode="decimal" value="100" min="1" />
+        </div>
+        <div class="input-group">
+          <label>Obtained Marks <span style="color:var(--text-muted);font-size:var(--text-xs);">(optional)</span></label>
+          <input id="modal-subj-obtained" class="input" type="number" inputmode="decimal" step="0.5" min="0"
+                 placeholder="Leave blank to enter via components later" />
+        </div>
+      `, 'Add Subject', async () => {
+        const name   = document.getElementById('modal-subj-name').value.trim();
+        const total  = parseFloat(document.getElementById('modal-subj-total').value);
+        const obtStr = document.getElementById('modal-subj-obtained').value;
+        if (!name) return;
+        const opts = { totalMarks: total || 100 };
+        if (obtStr !== '') opts.directMark = parseFloat(obtStr);
+        Store.addSubject(yearId, termId, name, opts);
+        await Store.saveAcademics(); Modal.close(); Toast.show('Subject added'); this._renderSubjectsList();
+      });
+    });
+
+    document.getElementById('built-in-quote-count').textContent = Quotes.getBuiltInCount();
+    this._renderCustomQuotes();
+    document.getElementById('add-custom-quote-btn').addEventListener('click', async () => {
+      const input = document.getElementById('custom-quote-input');
+      const text  = input ? input.value.trim() : '';
+      if (!text) return;
+      await Quotes.addCustom(text);
+      if (input) input.value = '';
+      Toast.show('Quote added');
+      this._renderCustomQuotes();
+    });
+  },
+
+  _renderGradeBoundaries(bounds) {
+    const container = document.getElementById('grade-boundaries-list');
+    if (!container) return;
+    const grades = [
+      { key: 'A', label: 'A', color: 'var(--grade-A-color)' },
+      { key: 'B', label: 'B', color: 'var(--grade-B-color)' },
+      { key: 'C', label: 'C', color: 'var(--grade-C-color)' },
+    ];
+    container.innerHTML = grades.map(g => `
+      <div class="grade-boundary-row">
+        <div class="grade-label" style="color:${g.color}">${g.label}</div>
+        <div style="flex:1;font-size:var(--text-sm);color:var(--text-secondary);">Minimum percentage</div>
+        <input type="number" id="boundary-${g.key}" class="input" inputmode="decimal" value="${bounds[g.key]}"
+               min="0" max="100" step="1" style="width:80px;text-align:center;" />
+        <span style="font-size:var(--text-sm);color:var(--text-muted);">%</span>
+      </div>
+    `).join('') + `
+      <div class="grade-boundary-row">
+        <div class="grade-label" style="color:var(--grade-F-color)">F</div>
+        <div style="flex:1;font-size:var(--text-sm);color:var(--text-secondary);">Below C boundary</div>
+        <div style="font-size:var(--text-sm);color:var(--text-muted);width:80px;text-align:center;">Auto</div>
+        <span style="font-size:var(--text-sm);color:var(--text-muted);">%</span>
+      </div>
+    `;
+  },
+
+  _renderYearsList() {
+    const academics = Store.getAcademics();
+    const container = document.getElementById('settings-years-list');
+    if (!container) return;
+    if (!academics.years || academics.years.length === 0) {
+      container.innerHTML = `<p style="color:var(--text-muted);font-size:var(--text-sm);">No years added yet.</p>`;
+      return;
+    }
+    container.innerHTML = academics.years.map(year => `
+      <div class="subject-list-item" style="cursor:default;">
+        <div>
+          <div class="subject-name">${year.label}</div>
+          <div class="subject-meta">${year.terms.length} terms · ${year.terms.reduce((s, t) => s + (t.modules || []).length, 0)} modules</div>
+        </div>
+        <div style="display:flex;gap:var(--sp-2);">
+          <button class="btn-icon" onclick="PageControllers.settings._editYear('${year.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-icon danger" onclick="PageControllers.settings._deleteYear('${year.id}', '${year.label}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          </button>
+        </div>
+      </div>`).join('');
+  },
+
+  async _editYear(yearId) {
+    const year = Store.getYear(yearId);
+    if (!year) return;
+    Modal.open('Edit Year', `
+      <div class="input-group">
+        <label>Year Label</label>
+        <input id="modal-year-label" class="input" type="text" value="${year.label}" />
+      </div>
+    `, 'Save', async () => {
+      const label = document.getElementById('modal-year-label').value.trim();
+      if (!label) return;
+      year.label = label; await Store.saveAcademics(); Modal.close(); Toast.show('Year updated'); this._renderYearsList();
+    });
+  },
+
+  async _deleteYear(yearId, label) {
+    Modal.open('Delete Year', `<p>Delete <strong>${label}</strong> and all its content?</p>`,
+      'Delete', async () => {
+        Store.deleteYear(yearId); await Store.saveAcademics(); Modal.close(); Toast.show('Year deleted', 'info');
+        this._renderYearsList(); this._populateYearSelects();
+      }, 'btn-danger'
+    );
+  },
+
+  _populateYearSelects() {
+    const academics = Store.getAcademics();
+    const years = academics.years || [];
+    ['mod-year-select', 'subj-year-select'].forEach(selId => {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      sel.innerHTML = years.length === 0
+        ? '<option value="">No years</option>'
+        : years.map(y => `<option value="${y.id}">${y.label}</option>`).join('');
+    });
+    if (years.length > 0) {
+      this._populateTermSelect(years[0].id, 'mod-term-select');
+      this._populateTermSelect(years[0].id, 'subj-term-select');
+      this._renderModulesList();
+      this._renderSubjectsList();
+    }
+  },
+
+  _populateTermSelect(yearId, selId) {
+    const year = Store.getYear(yearId);
+    const sel  = document.getElementById(selId);
+    if (!sel || !year) return;
+    sel.innerHTML = year.terms.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+  },
+
+  _renderModulesList() {
+    const yearSel = document.getElementById('mod-year-select');
+    const termSel = document.getElementById('mod-term-select');
+    const container = document.getElementById('settings-modules-list');
+    if (!yearSel || !termSel || !container) return;
+    const term = Store.getTerm(yearSel.value, termSel.value);
+    if (!term) { container.innerHTML = '<p style="color:var(--text-muted);font-size:var(--text-sm);">Select a year and term.</p>'; return; }
+    if ((term.modules || []).length === 0) { container.innerHTML = '<p style="color:var(--text-muted);font-size:var(--text-sm);">No modules in this term.</p>'; return; }
+    const yearId = yearSel.value, termId = termSel.value;
+    container.innerHTML = term.modules.map(mod => `
+      <div class="subject-list-item" style="cursor:default;">
+        <div>
+          <div class="subject-name">${mod.name}</div>
+          <div class="subject-meta">${Object.keys(mod.components || {}).length} assessments</div>
+        </div>
+        <div style="display:flex;gap:var(--sp-2);">
+          <button class="btn-icon" onclick="PageControllers.settings._editModule('${yearId}','${termId}','${mod.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-icon danger" onclick="PageControllers.settings._deleteModule('${yearId}','${termId}','${mod.id}','${mod.name}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+          </button>
+        </div>
+      </div>`).join('');
+  },
+
+  async _editModule(yearId, termId, moduleId) {
+    const mod = Store.getModule(yearId, termId, moduleId);
+    if (!mod) return;
+    Modal.open('Edit Module', `
+      <div class="input-group"><label>Module Name</label>
+      <input id="modal-mod-name" class="input" type="text" value="${mod.name}" /></div>
+    `, 'Save', async () => {
+      const name = document.getElementById('modal-mod-name').value.trim();
+      if (!name) return;
+      mod.name = name; await Store.saveAcademics(); Modal.close(); Toast.show('Module updated'); this._renderModulesList();
+    });
+  },
+
+  async _deleteModule(yearId, termId, moduleId, name) {
+    Modal.open('Delete Module', `<p>Delete <strong>${name}</strong> and all its marks?</p>`,
+      'Delete', async () => {
+        Store.deleteModule(yearId, termId, moduleId); await Store.saveAcademics(); Modal.close();
+        Toast.show('Module deleted', 'info'); this._renderModulesList();
+      }, 'btn-danger'
+    );
+  },
+
+  _renderSubjectsList() {
+    const yearSel   = document.getElementById('subj-year-select');
+    const termSel   = document.getElementById('subj-term-select');
+    const container = document.getElementById('settings-subjects-list');
+    if (!yearSel || !termSel || !container) return;
+    const term = Store.getTerm(yearSel.value, termSel.value);
+    if (!term) { container.innerHTML = '<p style="color:var(--text-muted);font-size:var(--text-sm);">Select a year and term.</p>'; return; }
+    const subjects = term.subjects || [];
+    if (subjects.length === 0) { container.innerHTML = '<p style="color:var(--text-muted);font-size:var(--text-sm);">No subjects in this term.</p>'; return; }
+    const yearId = yearSel.value, termId = termSel.value;
+    const bounds = Store.getSettings().gradeBoundaries;
+    container.innerHTML = subjects.map(sub => {
+      const avg   = Calculator.unitAverage(sub);
+      const grade = Calculator.getGrade(avg, bounds);
+      return `
+        <div class="subject-list-item" style="cursor:default;">
+          <div>
+            <div class="subject-name">${sub.name}</div>
+            <div class="subject-meta">${Calculator.fmt(avg)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--sp-2);">
+            <div class="grade-badge ${Calculator.gradeClass(grade)}" style="width:30px;height:30px;font-size:var(--text-sm);">${grade}</div>
+            <button class="btn-icon" onclick="PageControllers.settings._editSubject('${yearId}','${termId}','${sub.id}')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-icon danger" onclick="PageControllers.settings._deleteSubject('${yearId}','${termId}','${sub.id}','${sub.name}')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+  },
+
+  async _editSubject(yearId, termId, subjectId) {
+    const sub = Store.getSubject(yearId, termId, subjectId);
+    if (!sub) return;
+    Modal.open('Edit Subject', `
+      <div class="input-group"><label>Subject Name</label>
+      <input id="modal-subj-edit-name" class="input" type="text" value="${sub.name}" /></div>
+    `, 'Save', async () => {
+      const name = document.getElementById('modal-subj-edit-name').value.trim();
+      if (!name) return;
+      sub.name = name; await Store.saveAcademics(); Modal.close(); Toast.show('Subject updated'); this._renderSubjectsList();
+    });
+  },
+
+  async _deleteSubject(yearId, termId, subjectId, name) {
+    Modal.open('Delete Subject', `<p>Delete <strong>${name}</strong> and all its marks?</p>`,
+      'Delete', async () => {
+        Store.deleteSubject(yearId, termId, subjectId); await Store.saveAcademics(); Modal.close();
+        Toast.show('Subject deleted', 'info'); this._renderSubjectsList();
+      }, 'btn-danger'
+    );
+  },
+
+  _renderCustomQuotes() {
+    const container = document.getElementById('custom-quotes-list');
+    if (!container) return;
+    const { custom } = Quotes.getAll();
+    if (custom.length === 0) { container.innerHTML = '<p style="color:var(--text-muted);font-size:var(--text-sm);">No custom quotes yet.</p>'; return; }
+    container.innerHTML = custom.map((q, i) => `
+      <div style="display:flex;align-items:flex-start;gap:var(--sp-3);padding:var(--sp-3) 0;border-bottom:1px solid var(--border-light);">
+        <p style="flex:1;font-size:var(--text-sm);color:var(--text-secondary);font-style:italic;">"${q}"</p>
+        <button class="btn-icon danger" onclick="PageControllers.settings._deleteQuote(${i})">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
+      </div>`).join('');
+  },
+
+  async _deleteQuote(index) {
+    await Quotes.deleteCustom(index);
+    Toast.show('Quote deleted', 'info');
+    this._renderCustomQuotes();
+  }
+};
+
+/* ── MODAL ── */
+const Modal = {
+  _onConfirm: null,
+
+  open(title, bodyHTML, confirmLabel, onConfirm, confirmClass) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').innerHTML = bodyHTML;
+    const confirmBtn = document.getElementById('modal-confirm');
+    confirmBtn.textContent = confirmLabel || 'Save';
+    confirmBtn.className = `btn ${confirmClass || 'btn-primary'}`;
+    this._onConfirm = onConfirm;
+    document.getElementById('modal-overlay').classList.add('visible');
+    setTimeout(() => {
+      const inp = document.querySelector('#modal-body input, #modal-body textarea');
+      if (inp) inp.focus();
+    }, 100);
+  },
+
+  confirm() { if (this._onConfirm) this._onConfirm(); },
+
+  close() {
+    document.getElementById('modal-overlay').classList.remove('visible');
+    this._onConfirm = null;
+  },
+};
+
+/* ── TOAST ── */
+const Toast = {
+  show(message, type = 'success', duration = 2800) {
+    const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.innerHTML = `<span class="toast-icon">${icons[type] || '•'}</span><span>${message}</span>`;
+    document.getElementById('toast-container').appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('visible')));
+    setTimeout(() => { el.classList.remove('visible'); setTimeout(() => el.remove(), 350); }, duration);
+  },
+};
+
+/* ── ROUTER (inline templates — no fetch) ── */
+const Router = {
+  currentParams: {},
+
+  navigate(hash) { window.location.hash = hash; },
+
+  parse(hash) {
+    const raw = (hash || '').replace('#/', '').replace('#', '');
+    if (!raw) return { page: 'home', params: {} };
+    const parts = raw.split('/');
+    const params = {};
+    const topLevel = ['home', 'settings', 'onboarding'];
+    if (topLevel.includes(parts[0])) return { page: parts[0], params };
+    let page = 'home';
+    if (parts[0] === 'year' && parts[1]) {
+      params.yearId = parts[1]; page = 'year';
+      if (parts[2] === 'term' && parts[3]) {
+        params.termId = parts[3]; page = 'term';
+        if ((parts[4] === 'module' || parts[4] === 'subject') && parts[5]) {
+          params.type = parts[4]; params.id = parts[5]; page = 'unit';
+          if (parts[4] === 'module' && parts[6] === 'subject' && parts[7]) {
+            params.moduleId = parts[5]; params.type = 'subject'; params.id = parts[7];
+          }
+        }
+      }
+    }
+    return { page, params };
+  },
+
+  async handle(hash) {
+    const { page, params } = this.parse(hash);
+    this.currentParams = params;
+
+    const sidebar = document.getElementById('sidebar');
+    if (page === 'onboarding') sidebar.classList.add('hidden');
+    else sidebar.classList.remove('hidden');
+
+    document.querySelectorAll('.nav-item, .bottom-nav-item[data-route]').forEach(el => {
+      el.classList.toggle('active', el.dataset.route === page);
+    });
+
+    const templateFn = PageTemplates[page] || PageTemplates.home;
+    const content = document.getElementById('page-content');
+    content.innerHTML = templateFn();
+    content.style.animation = 'none';
+    content.offsetHeight;
+    content.style.animation = '';
+
+    const ctrl = PageControllers[page];
+    if (ctrl) await ctrl.init(params);
+  }
+};
+
+window.addEventListener('hashchange', () => Router.handle(location.hash));
+
+/* ── SIDEBAR BUILDER ── */
+function buildSidebar() {
+  const academics = Store.getAcademics();
+  const user = Store.getUser();
+  if (user && user.name) {
+    const nameEl   = document.getElementById('sidebar-user-name');
+    const avatarEl = document.getElementById('sidebar-avatar');
+    if (nameEl) nameEl.textContent = user.name;
+    if (avatarEl) avatarEl.textContent = user.name.slice(0, 1).toUpperCase();
+  }
+  const container = document.getElementById('sidebar-years');
+  if (!container) return;
+  if (!academics.years || academics.years.length === 0) {
+    container.innerHTML = `<div style="padding:8px 12px;font-size:12px;color:#475569;">No years yet</div>`;
+    return;
+  }
+  container.innerHTML = academics.years.map(year => `
+    <div class="sidebar-year-group">
+      <div class="sidebar-year-toggle" onclick="toggleSidebarYear('${year.id}', this)" data-year-id="${year.id}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        </svg>
+        <span>${year.label}</span>
+        <svg class="toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+      <div class="sidebar-year-children" id="year-children-${year.id}">
+        ${year.terms.map(term => `
+          <div class="sidebar-term-item" onclick="Router.navigate('#/year/${year.id}/term/${term.id}')">${term.label}</div>
+        `).join('')}
+        <div class="sidebar-term-item" style="color:#475569;font-style:italic;"
+             onclick="Router.navigate('#/year/${year.id}')">Overview</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleSidebarYear(yearId, el) {
+  el.classList.toggle('open');
+  const children = document.getElementById(`year-children-${yearId}`);
+  if (children) children.classList.toggle('open');
+}
+
+/* ── MOBILE YEAR SHEET ── */
+function buildYearSheet() {
+  const academics = Store.getAcademics();
+  const content   = document.getElementById('year-sheet-content');
+  if (!content) return;
+  if (!academics.years || academics.years.length === 0) {
+    content.innerHTML = `<p style="color:var(--text-muted);font-size:var(--text-sm);padding:var(--sp-4);">No years yet. Add one in Settings.</p>`;
+    return;
+  }
+  content.innerHTML = academics.years.map(year => `
+    <div style="margin-bottom:var(--sp-3);">
+      <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);padding:var(--sp-2) 0;">${year.label}</div>
+      ${year.terms.map(term => `
+        <div class="card card-clickable" style="padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-2);"
+             onclick="closeYearSheet();Router.navigate('#/year/${year.id}/term/${term.id}')">
+          ${term.label}
+        </div>`).join('')}
+      <div class="card card-clickable" style="padding:var(--sp-3) var(--sp-4);color:var(--text-secondary);"
+           onclick="closeYearSheet();Router.navigate('#/year/${year.id}')">Overview</div>
+    </div>
+  `).join('');
+}
+
+function closeYearSheet() {
+  document.getElementById('year-sheet-overlay').classList.remove('visible');
+}
+
+/* ── APP INIT ── */
+async function init() {
+  try {
+    await Store.init();
+    Theme.apply(Store.getSettings().theme);
+    buildSidebar();
+    Store.on('academics:changed', () => { buildSidebar(); buildYearSheet(); });
+    Store.on('user:changed', buildSidebar);
+
+    document.getElementById('modal-confirm').addEventListener('click', () => Modal.confirm());
+    document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) Modal.close(); });
+
+    const bnYears = document.getElementById('bn-years');
+    if (bnYears) {
+      bnYears.addEventListener('click', () => {
+        buildYearSheet();
+        document.getElementById('year-sheet-overlay').classList.add('visible');
+      });
+    }
+    document.getElementById('year-sheet-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeYearSheet();
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+
+    const user = Store.getUser();
+    if (!user || !user.name) {
+      Router.navigate('#/onboarding');
+    } else if (!location.hash || location.hash === '#') {
+      Router.navigate('#/home');
+    } else {
+      Router.handle(location.hash);
+    }
+  } catch (err) {
+    console.error('Init error:', err);
+    document.getElementById('page-content').innerHTML = `
+      <div class="loading-screen">
+        <p style="color:var(--color-danger)">Failed to initialize: ${err.message}</p>
+      </div>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
