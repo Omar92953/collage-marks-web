@@ -330,10 +330,6 @@ input,select,textarea{font-size:16px!important}
       <div class="nav-section-label">Academic Years</div>
       <div id="sidebar-years"></div>
       <div class="nav-divider"></div>
-      <a href="#/admin" class="nav-item" data-route="admin">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-        <span>Admin</span>
-      </a>
       <a href="#/settings" class="nav-item" data-route="settings">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
         <span>Settings</span>
@@ -479,6 +475,16 @@ const Store = {
     if (nameEl)   nameEl.textContent   = (this._user.name || name).trim();
     this.emit('user:changed', this._user);
   },
+  async saveDisplayName(displayName) {
+    this._user.name = displayName.trim();
+    if (this._username) localStorage.setItem(this._lsKey('user'), JSON.stringify(this._user));
+    const initials = displayName.trim().slice(0,1).toUpperCase();
+    const avatarEl = document.getElementById('sidebar-avatar');
+    const nameEl   = document.getElementById('sidebar-user-name');
+    if (avatarEl) avatarEl.textContent = initials;
+    if (nameEl)   nameEl.textContent   = displayName.trim();
+    this.emit('user:changed', this._user);
+  },
   async saveAcademics() {
     if (this._username) localStorage.setItem(this._lsKey('academics'), JSON.stringify(this._academics));
     this.emit('academics:changed', this._academics);
@@ -493,6 +499,10 @@ const Store = {
     this._user      = { name: null };
     this._settings  = this._defaultSettings();
     this._academics = { years: [] };
+    const avatarEl = document.getElementById('sidebar-avatar');
+    const nameEl   = document.getElementById('sidebar-user-name');
+    if (avatarEl) avatarEl.textContent = '?';
+    if (nameEl)   nameEl.textContent   = 'Guest';
   },
 
   generateId(prefix = 'id') { return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`; },
@@ -904,13 +914,6 @@ const PageTemplates = {
       </div>
       <div id="unit-components-list"></div>
     </div>`,
-
-  admin: () => `
-    <div class="page-header">
-      <h1>Admin Dashboard</h1>
-      <p class="subtitle">All user accounts stored on this device</p>
-    </div>
-    <div id="admin-users-grid" style="display:grid;gap:var(--sp-4);"></div>`,
 
   settings: () => `
     <div class="page-header"><h1>Settings</h1></div>
@@ -2065,63 +2068,6 @@ PageControllers.unit = {
   }
 };
 
-/* ── ADMIN PAGE CONTROLLER ── */
-PageControllers.admin = {
-  async init() {
-    const grid = document.getElementById('admin-users-grid');
-    if (!grid) return;
-    const userListRaw = localStorage.getItem('collage-marks-users');
-    const userKeys = userListRaw ? JSON.parse(userListRaw) : [];
-    if (!userKeys.length) {
-      grid.innerHTML = `<div class="card" style="padding:var(--sp-6);text-align:center;color:var(--text-muted);">No user accounts found on this device.</div>`;
-      return;
-    }
-    const bounds = (Store.getSettings() || {}).gradeBoundaries || { A: 85, B: 75, C: 60, D: 50, F: 0 };
-    grid.innerHTML = userKeys.map(key => {
-      const uRaw = localStorage.getItem(`collage-marks-${key}-user`);
-      const aRaw = localStorage.getItem(`collage-marks-${key}-academics`);
-      const sRaw = localStorage.getItem(`collage-marks-${key}-settings`);
-      const user     = uRaw ? JSON.parse(uRaw) : { name: key };
-      const acad     = aRaw ? JSON.parse(aRaw) : { years: [] };
-      const settings = sRaw ? JSON.parse(sRaw) : {};
-      const userBounds = (settings.gradeBoundaries) || bounds;
-      let totalEarned = 0, totalMarks = 0, hasData = false;
-      let yearsBreakdown = '';
-      for (const year of acad.years || []) {
-        const ym = Calculator.yearMarks(year);
-        totalEarned += ym.earned; totalMarks += ym.total; if (ym.hasData) hasData = true;
-        const avg = ym.hasData && ym.total ? ((ym.earned / ym.total) * 100) : null;
-        const grade = Calculator.getGrade(avg, userBounds);
-        yearsBreakdown += `<div style="display:flex;justify-content:space-between;padding:var(--sp-1) 0;font-size:var(--text-sm);">
-          <span style="color:var(--text-secondary);">${year.label}</span>
-          <span style="display:flex;align-items:center;gap:var(--sp-2);">
-            ${avg !== null ? `<span style="font-weight:600;">${ym.earned}/${ym.total} (${avg.toFixed(1)}%)</span>` : '<span style="color:var(--text-muted);">No data</span>'}
-            <span class="grade-badge grade-badge-sm ${Calculator.gradeClass(grade)}">${grade}</span>
-          </span>
-        </div>`;
-      }
-      const overallAvg = (hasData && totalMarks) ? (totalEarned / totalMarks) * 100 : null;
-      const overallGrade = Calculator.getGrade(overallAvg, userBounds);
-      return `<div class="card">
-        <div style="display:flex;align-items:center;gap:var(--sp-4);padding:var(--sp-4) var(--sp-5);border-bottom:1px solid var(--border);">
-          <div style="width:44px;height:44px;border-radius:50%;background:var(--color-primary-light);display:flex;align-items:center;justify-content:center;font-size:var(--text-xl);font-weight:700;flex-shrink:0;">
-            ${(user.name || key).slice(0,1).toUpperCase()}
-          </div>
-          <div style="flex:1;">
-            <div style="font-weight:700;font-size:var(--text-lg);">${user.name || key}</div>
-            <div style="font-size:var(--text-xs);color:var(--text-muted);">@${key} &nbsp;·&nbsp; ${(acad.years || []).length} year${(acad.years || []).length !== 1 ? 's' : ''}</div>
-          </div>
-          <div style="text-align:right;">
-            <div class="grade-badge grade-badge-lg ${Calculator.gradeClass(overallGrade)}">${overallGrade}</div>
-            ${overallAvg !== null ? `<div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px;">${overallAvg.toFixed(1)}%</div>` : ''}
-          </div>
-        </div>
-        ${yearsBreakdown ? `<div style="padding:var(--sp-3) var(--sp-5);">${yearsBreakdown}</div>` : `<div style="padding:var(--sp-4) var(--sp-5);color:var(--text-muted);font-size:var(--text-sm);">No years added yet.</div>`}
-      </div>`;
-    }).join('');
-  }
-};
-
 /* ── SETTINGS PAGE CONTROLLER ── */
 PageControllers.settings = {
   async init() {
@@ -2136,7 +2082,7 @@ PageControllers.settings = {
       nameSaveBtn.addEventListener('click', async () => {
         const name = nameInput.value.trim();
         if (!name) return;
-        await Store.setUserName(name);
+        await Store.saveDisplayName(name);
         Toast.show('Name updated');
       });
     }
@@ -2540,7 +2486,7 @@ const Router = {
     if (!raw) return { page: 'home', params: {} };
     const parts = raw.split('/');
     const params = {};
-    const topLevel = ['home', 'settings', 'onboarding', 'admin'];
+    const topLevel = ['home', 'settings', 'onboarding'];
     if (topLevel.includes(parts[0])) return { page: parts[0], params };
     let page = 'home';
     if (parts[0] === 'year' && parts[1]) {

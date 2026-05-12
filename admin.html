@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Collage Marks</title>
+<style>
+:root {
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bg: #191919; --surface: #222224; --surface2: #2c2c2e;
+  --border: rgba(84,84,88,.35); --border-light: rgba(84,84,88,.2);
+  --text: #fff; --text2: rgba(235,235,245,.6); --text3: rgba(235,235,245,.3);
+  --green: #30d158; --green-bg: rgba(48,209,88,.15);
+  --orange: #ff9f0a; --orange-bg: rgba(255,159,10,.15);
+  --gray: #8e8e93; --gray-bg: rgba(142,142,147,.15);
+  --red: #ff453a; --red-bg: rgba(255,69,58,.15);
+  --d-color: #ff7b4d; --d-bg: rgba(255,123,77,.15);
+  --radius: 14px; --radius-sm: 10px; --radius-xs: 8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px 48px;}
+h1{font-size:28px;font-weight:700;margin-bottom:4px}
+.subtitle{color:var(--text2);font-size:13px;margin-bottom:24px}
+.grid{display:grid;gap:16px;max-width:860px;margin:0 auto;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.card-header{display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--border);}
+.avatar{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;}
+.user-name{font-weight:700;font-size:17px}
+.user-meta{font-size:12px;color:var(--text3);margin-top:2px}
+.overall{text-align:right}
+.grade-badge{display:inline-flex;align-items:center;justify-content:center;font-weight:700;border-radius:50%;width:40px;height:40px;font-size:16px;}
+.grade-badge.sm{width:28px;height:28px;font-size:12px;border-radius:50%;}
+.grade-A{background:var(--green-bg);color:var(--green)}
+.grade-B{background:rgba(255,255,255,.12);color:var(--text)}
+.grade-C{background:var(--gray-bg);color:var(--gray)}
+.grade-D{background:var(--d-bg);color:var(--d-color)}
+.grade-F{background:var(--red-bg);color:var(--red)}
+.grade---{background:var(--gray-bg);color:var(--gray)}
+.grade-none{background:var(--gray-bg);color:var(--gray)}
+.overall-pct{font-size:12px;color:var(--text3);margin-top:4px}
+.year-rows{padding:12px 20px;}
+.year-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-light);}
+.year-row:last-child{border-bottom:none}
+.year-label{font-size:13px;color:var(--text2)}
+.year-right{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600}
+.empty{padding:16px 20px;color:var(--text3);font-size:13px}
+.no-users{text-align:center;padding:64px 24px;color:var(--text3)}
+.no-users h2{color:var(--text2);margin-bottom:8px}
+.header{max-width:860px;margin:0 auto 24px}
+.refresh-btn{background:rgba(255,255,255,.1);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:var(--radius-xs);font-size:13px;cursor:pointer;margin-top:8px}
+.refresh-btn:hover{background:rgba(255,255,255,.15)}
+.stats-row{display:flex;gap:16px;max-width:860px;margin:0 auto 20px;flex-wrap:wrap}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;flex:1;min-width:120px}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.stat-val{font-size:26px;font-weight:700}
+.term-rows{padding:4px 20px 12px;}
+.term-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;color:var(--text3)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Admin Dashboard</h1>
+  <p class="subtitle">All user accounts on this device — only visible at this URL</p>
+  <button class="refresh-btn" onclick="render()">Refresh</button>
+</div>
+
+<div class="stats-row" id="summary-row"></div>
+<div class="grid" id="users-grid"></div>
+
+<script>
+const BOUNDS_DEFAULT = { A: 85, B: 75, C: 60, D: 50, F: 0 };
+
+function getGrade(pct, b) {
+  if (pct === null || pct === undefined) return '--';
+  b = b || BOUNDS_DEFAULT;
+  if (pct >= b.A) return 'A';
+  if (pct >= b.B) return 'B';
+  if (pct >= b.C) return 'C';
+  if (b.D !== undefined && pct >= b.D) return 'D';
+  return 'F';
+}
+
+function yearMarks(year) {
+  let earned = 0, hasData = false;
+  for (const term of year.terms || []) {
+    for (const unit of [...(term.modules || []), ...(term.subjects || [])]) {
+      if (unit.directMark !== null && unit.directMark !== undefined) {
+        earned += unit.directMark; hasData = true;
+      } else {
+        for (const c of Object.values(unit.components || {})) {
+          if (c.mark !== null && c.mark !== undefined) { earned += c.mark; hasData = true; }
+        }
+      }
+    }
+  }
+  return { earned, total: year.totalMarks || 0, hasData };
+}
+
+function termMarks(term) {
+  let earned = 0, total = 0, hasData = false;
+  for (const unit of [...(term.modules || []), ...(term.subjects || [])]) {
+    total += unit.totalMarks || 0;
+    if (unit.directMark !== null && unit.directMark !== undefined) {
+      earned += unit.directMark; hasData = true;
+    } else {
+      for (const c of Object.values(unit.components || {})) {
+        if (c.mark !== null && c.mark !== undefined) { earned += c.mark; hasData = true; }
+      }
+    }
+  }
+  return { earned, total, hasData };
+}
+
+function gradeBadge(grade, size) {
+  const cls = grade === '--' ? 'grade-none' : `grade-${grade}`;
+  return `<span class="grade-badge ${size === 'sm' ? 'sm' : ''} ${cls}">${grade}</span>`;
+}
+
+function render() {
+  const listRaw = localStorage.getItem('collage-marks-users');
+  const keys = listRaw ? JSON.parse(listRaw) : [];
+
+  const summaryEl = document.getElementById('summary-row');
+  const gridEl    = document.getElementById('users-grid');
+
+  if (!keys.length) {
+    summaryEl.innerHTML = '';
+    gridEl.innerHTML = `<div class="no-users card"><h2>No users yet</h2><p>Friends will appear here once they create an account on the main app.</p></div>`;
+    return;
+  }
+
+  const users = keys.map(key => {
+    const uRaw = localStorage.getItem(`collage-marks-${key}-user`);
+    const aRaw = localStorage.getItem(`collage-marks-${key}-academics`);
+    const sRaw = localStorage.getItem(`collage-marks-${key}-settings`);
+    return {
+      key,
+      user:     uRaw ? JSON.parse(uRaw) : { name: key },
+      acad:     aRaw ? JSON.parse(aRaw) : { years: [] },
+      settings: sRaw ? JSON.parse(sRaw) : {},
+    };
+  });
+
+  // Summary stats
+  const totalUsers = users.length;
+  const usersWithData = users.filter(u => (u.acad.years || []).some(y => yearMarks(y).hasData)).length;
+  summaryEl.innerHTML = `
+    <div class="stat-box"><div class="stat-label">Total Users</div><div class="stat-val">${totalUsers}</div></div>
+    <div class="stat-box"><div class="stat-label">With Data</div><div class="stat-val">${usersWithData}</div></div>
+    <div class="stat-box"><div class="stat-label">Total Years</div><div class="stat-val">${users.reduce((s,u)=>s+(u.acad.years||[]).length,0)}</div></div>
+  `;
+
+  gridEl.innerHTML = users.map(({ key, user, acad, settings }) => {
+    const bounds = settings.gradeBoundaries || BOUNDS_DEFAULT;
+    let totalEarned = 0, totalMarks = 0, hasData = false;
+
+    const yearRowsHTML = (acad.years || []).map(year => {
+      const ym = yearMarks(year);
+      totalEarned += ym.earned; totalMarks += ym.total; if (ym.hasData) hasData = true;
+      const avg   = ym.hasData && ym.total ? (ym.earned / ym.total) * 100 : null;
+      const grade = getGrade(avg, bounds);
+
+      // Term breakdown
+      const termHTML = (year.terms || []).map(term => {
+        const tm = termMarks(term);
+        const tavg = tm.hasData && tm.total ? (tm.earned / tm.total) * 100 : null;
+        const tgrade = getGrade(tavg, bounds);
+        const units = [...(term.modules||[]),...(term.subjects||[])].length;
+        return `<div class="term-row">
+          <span>${term.label} &nbsp;·&nbsp; ${units} unit${units!==1?'s':''}</span>
+          <span style="display:flex;align-items:center;gap:8px;">
+            ${tavg !== null ? `${tm.earned}/${tm.total} (${tavg.toFixed(1)}%)` : 'no data'}
+            ${gradeBadge(tgrade, 'sm')}
+          </span>
+        </div>`;
+      }).join('');
+
+      return `<div class="year-row">
+        <span class="year-label">${year.label}</span>
+        <div class="year-right">
+          ${avg !== null
+            ? `<span>${ym.earned} / ${ym.total} &nbsp;·&nbsp; ${avg.toFixed(1)}%</span>`
+            : `<span style="color:var(--text3)">No data</span>`}
+          ${gradeBadge(grade, 'sm')}
+        </div>
+      </div>
+      ${termHTML ? `<div class="term-rows">${termHTML}</div>` : ''}`;
+    }).join('');
+
+    const overallAvg   = hasData && totalMarks ? (totalEarned / totalMarks) * 100 : null;
+    const overallGrade = getGrade(overallAvg, bounds);
+
+    return `<div class="card">
+      <div class="card-header">
+        <div class="avatar">${(user.name || key).slice(0,1).toUpperCase()}</div>
+        <div style="flex:1">
+          <div class="user-name">${user.name || key}</div>
+          <div class="user-meta">@${key} &nbsp;·&nbsp; ${(acad.years||[]).length} year${(acad.years||[]).length!==1?'s':''}</div>
+        </div>
+        <div class="overall">
+          ${gradeBadge(overallGrade)}
+          ${overallAvg !== null ? `<div class="overall-pct">${overallAvg.toFixed(1)}%</div>` : ''}
+        </div>
+      </div>
+      ${yearRowsHTML
+        ? `<div class="year-rows">${yearRowsHTML}</div>`
+        : `<div class="empty">No academic years added yet.</div>`}
+    </div>`;
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>
