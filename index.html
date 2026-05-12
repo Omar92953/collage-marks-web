@@ -1289,27 +1289,35 @@ PageControllers.year = {
     const earnedPct = yearTotal ? ((earnedSoFar / yearTotal) * 100).toFixed(1) : 0;
     const maxPct = yearTotal ? ((maxPossible / yearTotal) * 100).toFixed(1) : 0;
 
-    let headline, detail, accentColor;
-    if (aAchievable) {
-      const safeDrop = Math.floor(maxPossible - aNeeded);
-      headline = `<span style="color:var(--color-success);font-weight:700;">A zone is achievable</span>`;
-      detail = `You can potentially lose <strong>${safeDrop} mark${safeDrop !== 1 ? 's' : ''}</strong> from upcoming/ungraded exams and still reach A (${bounds.A}%)`;
-      accentColor = 'var(--color-success)';
-    } else if (bAchievable) {
-      const safeDrop = Math.floor(maxPossible - bNeeded);
-      headline = `<span style="color:var(--color-danger);font-weight:600;">A zone is no longer possible</span>`;
-      detail = `Best reachable: <strong style="color:var(--color-primary);">B</strong> — you can drop <strong>${safeDrop} mark${safeDrop !== 1 ? 's' : ''}</strong> and stay in B (${bounds.B}%)`;
-      accentColor = 'var(--color-primary)';
-    } else if (cAchievable) {
-      const safeDrop = Math.floor(maxPossible - cNeeded);
-      headline = `<span style="color:var(--color-danger);font-weight:600;">A and B are no longer possible</span>`;
-      detail = `Best reachable: <strong style="color:var(--color-warning);">C</strong> — you can drop <strong>${safeDrop} mark${safeDrop !== 1 ? 's' : ''}</strong> and stay in C (${bounds.C}%)`;
-      accentColor = 'var(--color-warning)';
-    } else {
-      headline = `<span style="color:var(--color-danger);font-weight:600;">Grade F even at maximum possible score</span>`;
-      detail = `Max possible: ${maxPossible} / ${yearTotal} (${maxPct}%)`;
-      accentColor = 'var(--color-danger)';
-    }
+    const topGrade = aAchievable ? 'A' : bAchievable ? 'B' : cAchievable ? 'C' : 'F';
+    const accentColor = aAchievable ? 'var(--color-success)' : bAchievable ? 'var(--text-primary)' : cAchievable ? 'var(--color-warning)' : 'var(--color-danger)';
+
+    const safeDropA = aAchievable ? Math.floor(maxPossible - aNeeded) : null;
+    const safeDropB = bAchievable ? Math.floor(maxPossible - bNeeded) : null;
+    const safeDropC = cAchievable ? Math.floor(maxPossible - cNeeded) : null;
+
+    const yearGradeRows = [
+      { grade: 'A', boundary: bounds.A, achievable: aAchievable, safeDrop: safeDropA, color: 'var(--color-success)' },
+      { grade: 'B', boundary: bounds.B, achievable: bAchievable, safeDrop: safeDropB, color: 'var(--text-primary)' },
+      { grade: 'C', boundary: bounds.C, achievable: cAchievable, safeDrop: safeDropC, color: 'var(--color-warning)' },
+    ];
+
+    const yearGradeTableHTML = yearGradeRows.map(r => {
+      if (r.achievable) {
+        return `<div style="display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) 0;border-bottom:1px solid var(--border-light);">
+          <div class="grade-badge grade-badge-sm ${Calculator.gradeClass(r.grade)}" style="flex-shrink:0;">${r.grade}</div>
+          <div style="flex:1;font-size:var(--text-sm);">≥${r.boundary}% &nbsp;·&nbsp; <span style="color:${r.color};font-weight:600;">drop up to ${r.safeDrop} mark${r.safeDrop !== 1 ? 's' : ''}</span></div>
+          <div style="font-size:var(--text-xs);color:var(--color-success);font-weight:600;">✓</div>
+        </div>`;
+      } else {
+        const needed = Math.ceil((r.boundary / 100) * yearTotal - maxPossible);
+        return `<div style="display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) 0;border-bottom:1px solid var(--border-light);opacity:.45;">
+          <div class="grade-badge grade-badge-sm grade-none" style="flex-shrink:0;">${r.grade}</div>
+          <div style="flex:1;font-size:var(--text-sm);">≥${r.boundary}% &nbsp;·&nbsp; short by ${needed} mark${needed !== 1 ? 's' : ''}</div>
+          <div style="font-size:var(--text-xs);color:var(--color-danger);font-weight:600;">✗</div>
+        </div>`;
+      }
+    }).join('');
 
     const termBreakdown = termRows.map(row => `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-2) 0;border-bottom:1px solid var(--border-light);">
@@ -1320,23 +1328,50 @@ PageControllers.year = {
         </span>
       </div>`).join('');
 
+    const ySimId  = 'yz-sim-' + year.id;
+    const ySimOut = 'yz-out-' + year.id;
+
     card.innerHTML = `<div style="padding:var(--sp-4) var(--sp-5);">
-      <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3);">
+      <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-4);">
         <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Grade Zone</div>
-        <div style="width:8px;height:8px;border-radius:50%;background:${accentColor};"></div>
+        <div class="grade-badge grade-badge-sm ${Calculator.gradeClass(topGrade)}">${topGrade} max</div>
       </div>
-      <div style="font-size:var(--text-sm);margin-bottom:var(--sp-1);">${headline}</div>
-      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--sp-4);">${detail}</div>
-      <div style="display:flex;gap:var(--sp-5);margin-bottom:var(--sp-4);font-size:var(--text-xs);color:var(--text-muted);flex-wrap:wrap;">
+      ${yearGradeTableHTML}
+      <div style="display:flex;gap:var(--sp-5);margin-top:var(--sp-3);margin-bottom:var(--sp-4);font-size:var(--text-xs);color:var(--text-muted);flex-wrap:wrap;">
         <span>Earned: <strong style="color:var(--text-primary);">${earnedSoFar}</strong> / ${yearTotal} (${earnedPct}%)</span>
         <span>Remaining: <strong style="color:var(--text-primary);">${globalRemainingMarks}</strong> marks</span>
-        <span>Max possible: <strong style="color:var(--text-primary);">${maxPossible}</strong> (${maxPct}%)</span>
+        <span>Max: <strong style="color:var(--text-primary);">${maxPossible}</strong> (${maxPct}%)</span>
+      </div>
+      <div style="margin-bottom:var(--sp-4);padding-bottom:var(--sp-4);border-bottom:1px solid var(--border);">
+        <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:var(--sp-3);">Mark Simulator</div>
+        <div style="display:flex;align-items:center;gap:var(--sp-3);">
+          <span style="font-size:var(--text-sm);color:var(--text-secondary);white-space:nowrap;flex-shrink:0;">Lose</span>
+          <input id="${ySimId}" type="range" min="0" max="${globalRemainingMarks}" value="0"
+                 style="flex:1;accent-color:var(--color-primary);" />
+          <span id="${ySimId}-val" style="font-size:var(--text-sm);font-weight:700;min-width:64px;text-align:right;flex-shrink:0;">0 marks</span>
+        </div>
+        <div id="${ySimOut}" style="margin-top:var(--sp-3);padding:var(--sp-3) var(--sp-4);background:var(--bg-surface-2);border-radius:var(--radius-md);font-size:var(--text-sm);min-height:36px;"></div>
       </div>
       <div style="border-top:1px solid var(--border-light);padding-top:var(--sp-3);">
         <div style="font-size:var(--text-xs);font-weight:600;color:var(--text-muted);margin-bottom:var(--sp-2);text-transform:uppercase;letter-spacing:.04em;">Per Term</div>
         ${termBreakdown}
       </div>
     </div>`;
+
+    const ySlider = document.getElementById(ySimId);
+    const ySimVal = document.getElementById(ySimId + '-val');
+    const ySimOutEl = document.getElementById(ySimOut);
+    const runYearSim = () => {
+      const lost   = parseInt(ySlider.value, 10);
+      const scored = earnedSoFar + (globalRemainingMarks - lost);
+      const pct    = yearTotal ? (scored / yearTotal) * 100 : 0;
+      const grade  = Calculator.getGrade(pct, bounds);
+      const col    = grade === 'A' ? 'var(--color-success)' : grade === 'B' ? 'var(--text-primary)' : grade === 'C' ? 'var(--color-warning)' : 'var(--color-danger)';
+      ySimVal.textContent = `${lost} mark${lost !== 1 ? 's' : ''}`;
+      ySimOutEl.innerHTML = `Score <strong>${scored % 1 === 0 ? scored : scored.toFixed(1)} / ${yearTotal}</strong> &nbsp;·&nbsp; <strong>${pct.toFixed(1)}%</strong> &nbsp;·&nbsp; Grade: <strong style="color:${col};font-size:var(--text-lg);">${grade}</strong>`;
+    };
+    runYearSim();
+    ySlider.addEventListener('input', runYearSim);
   },
 
   _updateYearDisplay(year) {
@@ -1934,18 +1969,65 @@ PageControllers.unit = {
     if (!card || !gz) { if (card) card.style.display = 'none'; return; }
     card.style.display = 'block';
     if (gz.mode === 'direct') {
-      const marginLine = gz.safetyMargin !== null
-        ? `<span style="color:var(--text-muted);font-size:var(--text-sm);">${gz.safetyMargin.toFixed(1)}% above ${gz.currentGrade} threshold</span>`
-        : '';
+      const dm = unit.directMark;
+      const tot = unit.totalMarks || 1;
+      const dmPct = (dm / tot) * 100;
+      const directRows = [
+        { grade: 'A', boundary: bounds.A, color: 'var(--color-success)' },
+        { grade: 'B', boundary: bounds.B, color: 'var(--text-primary)' },
+        { grade: 'C', boundary: bounds.C, color: 'var(--color-warning)' },
+      ].map(r => {
+        const threshold = (r.boundary / 100) * tot;
+        const achievable = dm >= threshold;
+        const diff = achievable ? Math.floor(dm - threshold) : Math.ceil(threshold - dm);
+        return achievable
+          ? `<div style="display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) 0;border-bottom:1px solid var(--border-light);">
+               <div class="grade-badge grade-badge-sm ${Calculator.gradeClass(r.grade)}" style="flex-shrink:0;">${r.grade}</div>
+               <div style="flex:1;font-size:var(--text-sm);">≥${r.boundary}% &nbsp;·&nbsp; <span style="color:${r.color};font-weight:600;">${diff} mark${diff !== 1 ? 's' : ''} above threshold</span></div>
+               <div style="font-size:var(--text-xs);color:var(--color-success);font-weight:600;">✓</div>
+             </div>`
+          : `<div style="display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) 0;border-bottom:1px solid var(--border-light);opacity:.45;">
+               <div class="grade-badge grade-badge-sm grade-none" style="flex-shrink:0;">${r.grade}</div>
+               <div style="flex:1;font-size:var(--text-sm);">≥${r.boundary}% &nbsp;·&nbsp; short by ${diff} mark${diff !== 1 ? 's' : ''}</div>
+               <div style="font-size:var(--text-xs);color:var(--color-danger);font-weight:600;">✗</div>
+             </div>`;
+      }).join('');
+
+      const simId = 'gz-sim-' + unit.id;
+      const simOutId = 'gz-out-' + unit.id;
       card.innerHTML = `
         <div style="padding:var(--sp-4) var(--sp-5);">
-          <div style="display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-4);">
             <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Direct Mark</div>
             <div class="grade-badge grade-badge-sm ${Calculator.gradeClass(gz.currentGrade)}">${gz.currentGrade}</div>
-            <div style="font-weight:600;">${gz.scoredPct.toFixed(1)}% — ${unit.directMark} / ${unit.totalMarks}</div>
-            ${marginLine}
+            <div style="font-weight:600;">${dmPct.toFixed(1)}% — ${dm} / ${tot}</div>
+          </div>
+          ${directRows}
+          <div style="margin-top:var(--sp-4);padding-top:var(--sp-4);border-top:1px solid var(--border);">
+            <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:var(--sp-3);">Mark Simulator</div>
+            <div style="display:flex;align-items:center;gap:var(--sp-3);">
+              <span style="font-size:var(--text-sm);color:var(--text-secondary);white-space:nowrap;flex-shrink:0;">Mark</span>
+              <input id="${simId}" type="range" min="0" max="${tot}" step="0.5" value="${dm}"
+                     style="flex:1;accent-color:var(--color-primary);" />
+              <span id="${simId}-val" style="font-size:var(--text-sm);font-weight:700;min-width:64px;text-align:right;flex-shrink:0;">${dm} / ${tot}</span>
+            </div>
+            <div id="${simOutId}" style="margin-top:var(--sp-3);padding:var(--sp-3) var(--sp-4);background:var(--bg-surface-2);border-radius:var(--radius-md);font-size:var(--text-sm);min-height:36px;"></div>
           </div>
         </div>`;
+
+      const slider = document.getElementById(simId);
+      const simVal = document.getElementById(simId + '-val');
+      const simOut = document.getElementById(simOutId);
+      const runDirectSim = () => {
+        const mark  = parseFloat(slider.value);
+        const pct   = (mark / tot) * 100;
+        const grade = Calculator.getGrade(pct, bounds);
+        const col   = grade === 'A' ? 'var(--color-success)' : grade === 'B' ? 'var(--text-primary)' : grade === 'C' ? 'var(--color-warning)' : 'var(--color-danger)';
+        simVal.textContent = `${mark % 1 === 0 ? mark : mark.toFixed(1)} / ${tot}`;
+        simOut.innerHTML   = `Score <strong>${mark % 1 === 0 ? mark : mark.toFixed(1)} / ${tot}</strong> &nbsp;·&nbsp; <strong>${pct.toFixed(1)}%</strong> &nbsp;·&nbsp; Grade: <strong style="color:${col};font-size:var(--text-lg);">${grade}</strong>`;
+      };
+      runDirectSim();
+      slider.addEventListener('input', runDirectSim);
       return;
     }
     const topGrade = gz.bestAchievableGrade;
